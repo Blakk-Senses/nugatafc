@@ -1,0 +1,355 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% if is_edit %}Edit{% else %}Add{% endif %} Standing — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+  
+  <style>
+    /* Enhanced styling for the standing form */
+    .standing-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .standing-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+    
+    .stat-card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      transition: var(--transition);
+    }
+    
+    .stat-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    
+    .stat-card label {
+      display: block;
+      font-size: 14px;
+      color: var(--text-light);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
+    .stat-card input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text);
+      outline: none;
+    }
+    
+    .goals-section {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: center;
+      margin: 20px 0;
+    }
+    
+    .goals-divider {
+      text-align: center;
+      color: var(--text-light);
+      font-weight: 600;
+      font-size: 20px;
+    }
+    
+    .season-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .card-header i {
+      color: var(--primary);
+    }
+    
+    .position-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 18px;
+      margin-right: 12px;
+    }
+    
+    .team-selector {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: var(--transition);
+    }
+    
+    .team-selector:hover {
+      border-color: var(--primary);
+    }
+    
+    .team-selector select {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    
+    .number-controls {
+      display: flex;
+      flex-direction: column;
+      margin-left: 8px;
+    }
+    
+    .number-up, .number-down {
+      background: var(--light);
+      border: none;
+      width: 20px;
+      height: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--text-light);
+      transition: var(--transition);
+    }
+    
+    .number-up:hover, .number-down:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    .number-up {
+      border-radius: 4px 4px 0 0;
+    }
+    
+    .number-down {
+      border-radius: 0 0 4px 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    {% include "dashboard/partials/sidebar.html" %}
+    <main class="main-content">
+      <div class="header">
+        <h1 class="page-title">{% if is_edit %}Edit{% else %}Add{% endif %} Standing</h1>
+      </div>
+
+      <div class="form-container">
+        {% if form.errors or form.non_field_errors %}
+          <div class="errors">
+            <strong>Please fix the errors below:</strong>
+            <ul>
+              {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+              {% for field in form %}
+                {% for err in field.errors %}
+                  <li>{{ field.label }}: {{ err }}</li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <form method="post" class="form-content">
+          {% csrf_token %}
+
+          <div class="card">
+            <div class="card-header"><i class="fas fa-users"></i> Team & Stats</div>
+            <div class="stats-grid">
+              
+              <!-- Editable Fields -->
+              <div class="form-group">
+                <label>Team</label>{{ form.team }}
+              </div>
+              <div class="form-group">
+                <label>Won</label>{{ form.won }}
+              </div>
+              <div class="form-group">
+                <label>Drawn</label>{{ form.drawn }}
+              </div>
+              <div class="form-group">
+                <label>Lost</label>{{ form.lost }}
+              </div>
+              <div class="form-group">
+                <label>Goals For</label>{{ form.goal_for }}
+              </div>
+              <div class="form-group">
+                <label>Goals Against</label>{{ form.goal_against }}
+              </div>
+              <div class="form-group">
+                <label>Season</label>{{ form.season }}
+              </div>
+              <div class="form-group">
+                <label>League</label>{{ form.match_type }}
+              </div>
+
+              <!-- Read-Only Fields -->
+              <div class="form-group">
+                <label>Played</label>
+                <input type="number" id="id_played" value="{{ form.played.value|default_if_none:0 }}" readonly>
+              </div>
+              <div class="form-group">
+                <label>Goal Difference</label>
+                <input type="number" id="id_goal_difference" value="0" readonly>
+              </div>
+              <div class="form-group">
+                <label>Points</label>
+                <input type="number" id="id_points" value="0" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a href="{% url 'dashboard:standings_manager' %}" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-save"></i> Save Standing
+            </button>
+          </div>
+        </form>
+
+        <!-- Standings Table -->
+        <div class="card" style="margin-top:30px;">
+          <div class="card-header"><i class="fas fa-trophy"></i> League Standings</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Team</th>
+                <th>Played</th>
+                <th>Won</th>
+                <th>Drawn</th>
+                <th>Lost</th>
+                <th>GF</th>
+                <th>GA</th>
+                <th>GD</th>
+                <th>Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in standings_with_positions %}
+              <tr>
+                <td>{{ entry.position }}</td>
+                <td>{{ entry.standing.team.name }}</td>
+                <td>{{ entry.standing.played }}</td>
+                <td>{{ entry.standing.won }}</td>
+                <td>{{ entry.standing.drawn }}</td>
+                <td>{{ entry.standing.lost }}</td>
+                <td>{{ entry.standing.goal_for }}</td>
+                <td>{{ entry.standing.goal_against }}</td>
+                <td>{{ entry.standing.goal_difference }}</td>
+                <td>{{ entry.standing.points }}</td>
+              </tr>
+            {% endfor %}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function updateStats() {
+      const won = parseInt(document.getElementById('id_won').value) || 0;
+      const drawn = parseInt(document.getElementById('id_drawn').value) || 0;
+      const lost = parseInt(document.getElementById('id_lost').value) || 0;
+      const gf = parseInt(document.getElementById('id_goal_for').value) || 0;
+      const ga = parseInt(document.getElementById('id_goal_against').value) || 0;
+
+      document.getElementById('id_played').value = won + drawn + lost;
+      document.getElementById('id_points').value = won * 3 + drawn;
+      document.getElementById('id_goal_difference').value = gf - ga;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      ['id_won','id_drawn','id_lost','id_goal_for','id_goal_against'].forEach(id => {
+        const input = document.getElementById(id);
+        if(input) input.addEventListener('input', updateStats);
+      });
+      updateStats();
+    });
+  </script>
+</body>
+
+
+</html>

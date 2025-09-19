@@ -1,0 +1,70 @@
+{% load static %}
+<!-- Sidebar -->
+{% with current_url=request.resolver_match.url_name %}
+<aside class="sidebar">
+    <div class="logo">
+        <div class="logo-icon">
+            <img src="{% static 'images/nugatafc_logo.jpg' %}" alt="Nugata FC Logo">
+        </div>
+        <div class="logo-text">Nugata FC CMS</div>
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-title">Main</div>
+
+        <a href="{% url 'dashboard:analytics_dashboard' %}" 
+           class="nav-link {% if current_url == 'analytics_dashboard' %}active{% endif %}">
+            <i class="fas fa-chart-line"></i><span>Dashboard</span>
+        </a>
+
+        <a href="{% url 'dashboard:news_manager' %}" 
+           class="nav-link {% if current_url == 'news_manager' %}active{% endif %}">
+            <i class="fas fa-newspaper"></i><span>News</span>
+        </a>
+
+        <a href="{% url 'dashboard:match_manager' %}" 
+           class="nav-link {% if current_url == 'match_manager' %}active{% endif %}">
+            <i class="fas fa-futbol"></i><span>Matches</span>
+        </a>
+
+        <a href="{% url 'dashboard:player_manager' %}" 
+           class="nav-link {% if current_url == 'player_manager' %}active{% endif %}">
+            <i class="fas fa-user"></i><span>Players</span>
+        </a>
+
+        <a href="{% url 'dashboard:performance_list'%}" 
+           class="nav-link {% if current_url == 'performance_list' %}active{% endif %}">
+            <i class="fas fa-chart-bar"></i><span>Performance</span>
+        </a>
+
+        <a href="{% url 'dashboard:standings_manager' %}" 
+           class="nav-link {% if current_url == 'standings_manager' %}active{% endif %}">
+            <i class="fas fa-trophy"></i><span>Standings</span>
+        </a>
+
+        <a href="{% url 'dashboard:team_manager' %}" 
+           class="nav-link {% if current_url == 'team_manager' %}active{% endif %}">
+            <i class="fas fa-users"></i><span>Teams</span>
+        </a>
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-title">Settings</div>
+
+        <a href="{% url 'dashboard:settings_general' %}" 
+           class="nav-link {% if current_url == 'settings_general' %}active{% endif %}">
+            <i class="fas fa-cog"></i><span>General</span>
+        </a>
+
+        <a href="{% url 'dashboard:settings_team' %}" 
+           class="nav-link {% if current_url == 'settings_team' %}active{% endif %}">
+            <i class="fas fa-user-tie"></i><span>Staff</span>
+        </a>
+
+        <a href="{% url 'dashboard:settings_integrations' %}" 
+           class="nav-link {% if current_url == 'settings_integrations' %}active{% endif %}">
+            <i class="fas fa-plug"></i><span>Integrations</span>
+        </a>
+    </div>
+</aside>
+{% endwith %}

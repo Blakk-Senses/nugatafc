@@ -1,0 +1,362 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% if is_edit %}Edit{% else %}Add{% endif %} Team — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+
+  <style>
+    /* Enhanced styling for the team form */
+    .team-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .team-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .logo-upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--light);
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    .logo-upload-area:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    
+    .logo-upload-area.has-image {
+      border-style: solid;
+      padding: 20px;
+    }
+    
+    .upload-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      color: var(--text-light);
+    }
+    
+    .upload-text {
+      color: var(--text-light);
+      margin: 0 0 16px 0;
+    }
+    
+    .upload-text strong {
+      color: var(--primary);
+    }
+    
+    .logo-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .logo-preview img {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+    
+    .logo-preview-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .change-logo-btn {
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      transition: var(--transition);
+    }
+    
+    .change-logo-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    .remove-logo-btn {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #b91c1c;
+      transition: var(--transition);
+    }
+    
+    .remove-logo-btn:hover {
+      background: #fee2e2;
+    }
+    
+    .card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    .card-header i {
+      color: var(--primary);
+    }
+    
+    .team-info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .team-info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  {% include "dashboard/partials/sidebar.html" %}
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="header">
+      <h1 class="page-title">{% if is_edit %}Edit{% else %}Add{% endif %} Team</h1>
+      <div class="user-menu">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search...">
+        </div>
+        <div class="user-profile">
+          <div class="user-info">
+            <div class="user-name">
+              {% with members|get_member:request.user as current_member %}
+                {{ current_member.name|default:request.user.username }}
+              {% endwith %}
+            </div>
+            <div class="user-role">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.role %}
+                  {{ current_member.role.name }}
+                {% else %}
+                  {% if request.user.is_superuser %}
+                    Administrator
+                  {% else %}
+                    Staff Member
+                  {% endif %}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+          <div class="avatar">
+            {% with members|get_member:request.user as current_member %}
+              {% if current_member and current_member.picture %}
+                <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+              {% else %}
+                {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-container">
+      {% if form.errors or form.non_field_errors %}
+        <div class="errors">
+          <strong>Please fix the errors below:</strong>
+          <ul>
+            {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+            {% for field in form %}
+              {% for err in field.errors %}<li>{{ field.label }}: {{ err }}</li>{% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="team-header">
+        <div class="team-icon"><i class="fas fa-users"></i></div>
+        <h2 style="margin:0;">Team Details</h2>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="form-content">
+        {% csrf_token %}
+
+        <!-- Team Name -->
+        <div class="form-group">
+          <label for="id_name">Team Name</label>
+          {{ form.name }}
+        </div>
+
+        <!-- Season -->
+        <div class="form-group">
+          <label for="id_season">Season</label>
+          {{ form.season }}
+        </div>
+
+        <!-- Stadium -->
+        <div class="form-group">
+          <label for="id_stadium">Home Stadium</label>
+          {{ form.stadium }}
+        </div>
+
+        <!-- Logo Upload -->
+        <div class="form-group">
+          <label for="id_logo">Team Logo</label>
+          <div id="logoUploadArea" class="logo-upload-area">
+            {% if form.instance.logo %}
+              <div class="logo-preview">
+                <img src="{{ form.instance.logo.url }}" alt="{{ form.instance.name }} logo" id="logoPreview">
+                <div class="logo-preview-actions">
+                  <button type="button" id="removeLogoBtn">Remove</button>
+                </div>
+              </div>
+            {% else %}
+              <div class="upload-placeholder">
+                <p>Drag & drop your logo here or click to browse</p>
+              </div>
+            {% endif %}
+          </div>
+          {{ form.logo }}
+        </div>
+
+        <button type="submit" class="btn btn-success">Save Team</button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const logoUploadArea = document.getElementById('logoUploadArea');
+  const logoInput = document.getElementById('id_logo');
+
+  function showPreview(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      logoUploadArea.innerHTML = `
+        <div class="logo-preview">
+          <img src="${e.target.result}" alt="Logo preview" id="logoPreview">
+          <div class="logo-preview-actions">
+            <button type="button" id="removeLogoBtn">Remove</button>
+          </div>
+        </div>
+      `;
+      attachRemoveListener();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function attachRemoveListener() {
+    const removeBtn = document.getElementById('removeLogoBtn');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', function() {
+        logoUploadArea.innerHTML = `
+          <div class="upload-placeholder">
+            <p>Drag & drop your logo here or click to browse</p>
+          </div>
+        `;
+        logoInput.value = '';
+      });
+    }
+  }
+
+  // Input change
+  logoInput.addEventListener('change', function() {
+    if (this.files.length) showPreview(this.files[0]);
+  });
+
+  // Drag & drop
+  logoUploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    logoUploadArea.style.borderColor = '#2563eb';
+  });
+  logoUploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    logoUploadArea.style.borderColor = '';
+  });
+  logoUploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) {
+      logoInput.files = e.dataTransfer.files;
+      showPreview(logoInput.files[0]);
+    }
+  });
+
+  // Click to open file browser
+  logoUploadArea.addEventListener('click', function(e) {
+    if (!e.target.closest('.logo-preview-actions')) logoInput.click();
+  });
+});
+</script>
+
+</body>
+
+</html>

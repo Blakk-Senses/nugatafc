@@ -1,0 +1,509 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% if is_edit %}Edit{% else %}Create{% endif %} News — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+
+  {{ core_form.media }}
+
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    {% include "dashboard/partials/sidebar.html" %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="header">
+        <h1 class="page-title">{% if is_edit %}Edit{% else %}Create{% endif %} News</h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search...">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% comment %} Only display errors if at least one form has errors {% endcomment %}
+{% if all_forms %}
+  {% with has_errors=False %}
+    {% for form in all_forms %}
+      {% if form.errors %}
+        {% with has_errors=True %}
+        {% endwith %}
+      {% endif %}
+    {% endfor %}
+
+    {% if has_errors %}
+      <div class="errors">
+        <strong>Please fix the errors below:</strong>
+        <ul>
+          {% for form in all_forms %}
+            {% for err in form.non_field_errors %}
+              <li>{{ err }}</li>
+            {% endfor %}
+            {% for field in form %}
+              {% for err in field.errors %}
+                <li>{{ field.label }}: {{ err }}</li>
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endif %}
+
+        <!-- Tabs -->
+        <div class="form-tabs" id="tabs">
+          <div class="form-tab active" data-tab="tab-core">Content</div>
+          <div class="form-tab" data-tab="tab-seo">SEO</div>
+          <div class="form-tab" data-tab="tab-social">Social</div>
+          <div class="form-tab" data-tab="tab-settings">Settings</div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="form-content">
+          {% csrf_token %}
+
+          <!-- Main Form Grid -->
+          <div class="form-grid">
+            <!-- LEFT COLUMN -->
+            <div class="tab-panels">
+              <!-- CORE TAB -->
+              <div class="form-section" data-panel="tab-core">
+                {% for field in core_form %}
+                  {% if field.name != 'category' and field.name != 'cover_image' and field.name != 'tags' and field.name != 'excerpt' %}
+                    <div class="form-group enhanced-field">
+                      {{ field.label_tag }}
+                      <div class="field-container">
+                        {{ field }}
+                        {% if field.help_text %}
+                          <div class="help-text">{{ field.help_text }}</div>
+                        {% endif %}
+                      </div>
+                      {% for err in field.errors %}
+                        <small class="error">{{ err }}</small>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+                
+                <!-- Excerpt moved below content -->
+                {% for field in core_form %}
+                  {% if field.name == 'excerpt' %}
+                    <div class="form-group enhanced-field">
+                      {{ field.label_tag }}
+                      <div class="field-container">
+                        {{ field }}
+                        {% if field.help_text %}
+                          <div class="help-text">{{ field.help_text }}</div>
+                        {% endif %}
+                      </div>
+                      {% for err in field.errors %}
+                        <small class="error">{{ err }}</small>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+
+              <!-- SEO TAB -->
+              <div class="form-section" data-panel="tab-seo" style="display:none;">
+                {% for field in seo_form %}
+                  <div class="form-group enhanced-field">
+                    {{ field.label_tag }}
+                    <div class="field-container">
+                      {{ field }}
+                      {% if field.help_text %}
+                        <div class="help-text">{{ field.help_text }}</div>
+                      {% endif %}
+                    </div>
+                    {% for err in field.errors %}
+                      <small class="error">{{ err }}</small>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+
+              <!-- SOCIAL TAB -->
+              <div class="form-section" data-panel="tab-social" style="display:none;">
+                {% for field in social_form %}
+                  <div class="form-group enhanced-field">
+                    {{ field.label_tag }}
+                    <div class="field-container">
+                      {{ field }}
+                      {% if field.help_text %}
+                        <div class="help-text">{{ field.help_text }}</div>
+                      {% endif %}
+                    </div>
+                    {% for err in field.errors %}
+                      <small class="error">{{ err }}</small>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+
+              <!-- SETTINGS TAB -->
+              <div class="form-section" data-panel="tab-settings" style="display:none;">
+                {% for field in settings_form %}
+                  <div class="form-group enhanced-field">
+                    {{ field.label_tag }}
+                    <div class="field-container">
+                      {{ field }}
+                      {% if field.help_text %}
+                        <div class="help-text">{{ field.help_text }}</div>
+                      {% endif %}
+                    </div>
+                    {% for err in field.errors %}
+                      <small class="error">{{ err }}</small>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="right-column">
+              <div class="form-section status-section">
+                <div class="form-group">
+                  <label class="form-label">Status</label>
+                  <div class="status-badge">
+                    <i class="fas fa-clock"></i>
+                    {% if is_edit %}
+                      {% if post.status == "published" %}
+                        <span class="status-published">Published</span>
+                      {% else %}
+                        <span class="status-draft">Draft</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="status-draft">Draft</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Category Field -->
+              {% for field in core_form %}
+                {% if field.name == 'category' %}
+                  <div class="form-section card-section">
+                    <div class="form-group enhanced-field">
+                      {{ field.label_tag }}
+                      <div class="field-container">
+                        {{ field }}
+                        {% if field.help_text %}
+                          <div class="help-text">{{ field.help_text }}</div>
+                        {% endif %}
+                      </div>
+                      {% for err in field.errors %}
+                        <small class="error">{{ err }}</small>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+
+              <!-- Cover Image Field -->
+              {% for field in core_form %}
+                {% if field.name == 'cover_image' %}
+                  <div class="form-section card-section">
+                    <div class="form-group enhanced-field">
+                      {{ field.label_tag }}
+                      {% if is_edit and post.cover_image %}
+                        <div class="cover-image-preview">
+                          <img src="{{ post.cover_image.url }}" alt="Cover image preview">
+                          <button type="button" class="remove-image-btn" id="remove-cover-image">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                      {% endif %}
+                      <div class="file-upload-area" id="cover-image-upload">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop or <span>browse files</span></p>
+                        {{ field }}
+                      </div>
+                      {% for err in field.errors %}
+                        <small class="error">{{ err }}</small>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+
+              <!-- Tags Field -->
+              {% for field in core_form %}
+                {% if field.name == 'tags' %}
+                  <div class="form-section card-section">
+                    <div class="form-group enhanced-field">
+                      {{ field.label_tag }}
+                      <div class="field-container">
+                        {{ field }}
+                        {% if field.help_text %}
+                          <div class="help-text">{{ field.help_text }}</div>
+                        {% endif %}
+                      </div>
+                      {% for err in field.errors %}
+                        <small class="error">{{ err }}</small>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+
+              <div class="form-section author-section">
+                <h3 class="form-section-title">Author</h3>
+                <div class="meta-card">
+                  <div class="meta-item">
+                    <span class="meta-label">Name</span>
+                    <span class="meta-value">{{ request.user.get_full_name|default:request.user.username }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <span class="meta-label">Email</span>
+                    <span class="meta-value">{{ request.user.email }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="form-actions">
+            <div class="action-left">
+              <button type="submit" name="draft" class="btn btn-secondary">
+                <i class="fas fa-save"></i> Save Draft
+              </button>
+              <a href="{% url 'dashboard:news_manager' %}" class="btn-link">Cancel</a>
+            </div>
+            <button type="submit" name="publish" class="btn btn-success">
+              <i class="fas fa-rocket"></i> Publish
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+  // Tabs
+  const tabs = document.querySelectorAll('.form-tab');
+  const panels = document.querySelectorAll('[data-panel]');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.getAttribute('data-tab');
+      panels.forEach(p => p.style.display = (p.getAttribute('data-panel') === target) ? 'block' : 'none');
+    });
+  });
+
+  // Slugify
+  function slugify(text) {
+    return text.toString().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  }
+  const titleInput = document.getElementById('id_core-title');
+  const slugInput  = document.getElementById('id_core-slug');
+  if (titleInput && slugInput && !slugInput.value) {
+    titleInput.addEventListener('input', () => {
+      if (!slugInput.dataset.touched) slugInput.value = slugify(titleInput.value);
+    });
+    slugInput.addEventListener('input', () => slugInput.dataset.touched = '1');
+  }
+
+  // Tags field - SIMPLE TEXT INPUT (remove Select2 to fix the issue)
+  // Comment out or remove the Select2 initialization below to use default text input
+
+  // Cover image preview
+  const coverImageInput = document.getElementById('id_core-cover_image');
+  if (coverImageInput) {
+    coverImageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          let preview = document.querySelector('.cover-image-preview');
+          if (!preview) {
+            preview = document.createElement('div');
+            preview.className = 'cover-image-preview';
+            document.querySelector('[for="id_core-cover_image"]').after(preview);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-image-btn';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.addEventListener('click', function() {
+              coverImageInput.value = '';
+              preview.remove();
+              document.querySelector('.file-upload-area').style.display = 'block';
+            });
+            preview.appendChild(removeBtn);
+          }
+          preview.innerHTML = `<img src="${e.target.result}" alt="Cover image preview">`;
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'remove-image-btn';
+          removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+          removeBtn.addEventListener('click', function() {
+            coverImageInput.value = '';
+            preview.remove();
+            document.querySelector('.file-upload-area').style.display = 'block';
+          });
+          preview.appendChild(removeBtn);
+          document.querySelector('.file-upload-area').style.display = 'none';
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Remove cover image button
+  const removeCoverImageBtn = document.getElementById('remove-cover-image');
+  if (removeCoverImageBtn) {
+    removeCoverImageBtn.addEventListener('click', function() {
+      document.querySelector('.cover-image-preview').remove();
+      document.getElementById('id_core-cover_image-clear').checked = true;
+      document.querySelector('.file-upload-area').style.display = 'block';
+    });
+  }
+
+  // Make file upload area interactive
+  const fileUploadArea = document.querySelector('.file-upload-area');
+  if (fileUploadArea) {
+    const fileInput = fileUploadArea.querySelector('input[type="file"]');
+
+    fileUploadArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileUploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      fileUploadArea.classList.add('dragover');
+    });
+
+    fileUploadArea.addEventListener('dragleave', () => {
+      fileUploadArea.classList.remove('dragover');
+    });
+
+    fileUploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      fileUploadArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        const event = new Event('change', { bubbles: true });
+        fileInput.dispatchEvent(event);
+      }
+    });
+  }
+</script>
+
+  <style>
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 2rem;
+      align-items: start;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .tab-panels {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .right-column {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-section[data-panel] {
+      display: block;
+      min-width: 0;
+    }
+
+    /* CKEditor fixes */
+    .ck-editor__editable_inline {
+      width: 100% !important;
+      min-height: 300px;
+      box-sizing: border-box;
+    }
+
+    /* Cover image preview */
+    .cover-image-preview { position: relative; margin: 10px 0; border-radius: 8px; overflow: hidden; max-width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .cover-image-preview img { width: 100%; height: auto; max-height: 180px; object-fit: cover; display: block; }
+
+    /* Remove image button */
+    .remove-image-btn { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.9); border: none; color: #e74c3c; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: all 0.2s ease; }
+    .remove-image-btn:hover { background: #fff; transform: scale(1.05); }
+
+    /* File upload */
+    .file-upload-area { border: 2px dashed #d1d5db; border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: #f9fafb; }
+    .file-upload-area.dragover { border-color: #3b82f6; background: #e0f0ff; }
+    .file-upload-area input[type="file"] { position: absolute; width: 0; height: 0; opacity: 0; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .right-column { width: 100%; }
+    }
+  </style>
+</body>
+</html>

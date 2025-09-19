@@ -1,0 +1,289 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Integration Settings — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+  <style>
+    /* Additional styles for the integrations page */
+    .integration-card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    
+    .integration-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    
+    .integration-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+    }
+    
+    .mailchimp-icon {
+      background: #ffe8c5;
+      color: #ffbe2c;
+    }
+    
+    .whatsapp-icon {
+      background: #e2f6e2;
+      color: #25d366;
+    }
+    
+    .integration-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--text);
+    }
+    
+    .integration-description {
+      color: var(--text-light);
+      margin: 4px 0 0 0;
+      font-size: 14px;
+    }
+    
+    .api-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    
+    .status-connected {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    .status-disconnected {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .test-connection {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    {% include "dashboard/partials/sidebar.html" %}
+    
+    <div class="main-content">
+      <div class="header">
+        <h1 class="page-title">Integration Settings</h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search integrations...">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {% if messages %}
+        <div class="form-container">
+          {% for message in messages %}
+            <div class="status-badge {% if message.tags == 'success' %}status-published{% else %}status-draft{% endif %}">
+              <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      
+      {% if form.errors %}
+        <div class="errors">
+          <strong>Please correct the following errors:</strong>
+          <ul>
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li>{{ field.label }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      
+      <div class="form-container">
+        <form method="POST">
+          {% csrf_token %}
+          
+          <!-- Mailchimp Integration Card -->
+          <div class="integration-card">
+            <div class="integration-header">
+              <div class="integration-icon mailchimp-icon">
+                <i class="fab fa-mailchimp"></i>
+              </div>
+              <div>
+                <h2 class="integration-title">Mailchimp Integration</h2>
+                <p class="integration-description">Connect your Mailchimp account to sync newsletter subscribers</p>
+              </div>
+              <span class="api-status {% if form.instance.mailchimp_api_key %}status-connected{% else %}status-disconnected{% endif %}">
+                <i class="fas {% if form.instance.mailchimp_api_key %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                {% if form.instance.mailchimp_api_key %}Connected{% else %}Not Connected{% endif %}
+              </span>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="{{ form.mailchimp_api_key.id_for_label }}">
+                <i class="fas fa-key"></i> Mailchimp API Key
+              </label>
+              {{ form.mailchimp_api_key }}
+              <div style="font-size: 14px; color: var(--text-light); margin-top: 8px;">
+                Find your API key in your Mailchimp account under Account → Extras → API keys
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="{{ form.mailchimp_list_id.id_for_label }}">
+                <i class="fas fa-list"></i> Audience List ID
+              </label>
+              {{ form.mailchimp_list_id }}
+              <div style="font-size: 14px; color: var(--text-light); margin-top: 8px;">
+                Find your List ID in Mailchimp under Audience → Settings → Audience name and defaults
+              </div>
+            </div>
+            
+            {% if form.instance.mailchimp_api_key %}
+            <div class="test-connection">
+              <button type="button" class="btn btn-secondary">
+                <i class="fas fa-plug"></i> Test Connection
+              </button>
+            </div>
+            {% endif %}
+          </div>
+          
+          <!-- WhatsApp Integration Card -->
+          <div class="integration-card">
+            <div class="integration-header">
+              <div class="integration-icon whatsapp-icon">
+                <i class="fab fa-whatsapp"></i>
+              </div>
+              <div>
+                <h2 class="integration-title">WhatsApp Integration</h2>
+                <p class="integration-description">Add your WhatsApp group link for team communications</p>
+              </div>
+              <span class="api-status {% if form.instance.whatsapp_group_link %}status-connected{% else %}status-disconnected{% endif %}">
+                <i class="fas {% if form.instance.whatsapp_group_link %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                {% if form.instance.whatsapp_group_link %}Connected{% else %}Not Connected{% endif %}
+              </span>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="{{ form.whatsapp_group_link.id_for_label }}">
+                <i class="fas fa-link"></i> WhatsApp Group Link
+              </label>
+              {{ form.whatsapp_group_link }}
+              <div style="font-size: 14px; color: var(--text-light); margin-top: 8px;">
+                Get the invite link from your WhatsApp group settings
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <a href="#" class="btn-link">Cancel</a>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-save"></i> Save Integrations
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Enhance form inputs with better styling
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+      inputs.forEach(input => {
+        input.className = 'form-input';
+      });
+    });
+    
+    // Test Mailchimp connection (placeholder function)
+    function testMailchimpConnection() {
+      alert('This would test the Mailchimp connection in a real implementation.');
+      // Actual implementation would make an AJAX call to a Django view
+      // that tests the Mailchimp API credentials
+    }
+    
+    // Add click event to test connection button
+    const testButton = document.querySelector('.test-connection button');
+    if (testButton) {
+      testButton.addEventListener('click', testMailchimpConnection);
+    }
+  </script>
+</body>
+</html>

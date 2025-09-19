@@ -1,0 +1,375 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Homepage - Official Website | Nugata FC</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Then link to your external CSS file -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+    
+    {% if club_settings and club_settings.favicon %}
+    {% with base=club_settings.favicon.url|cut:".png" %}
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+    {% endwith %}
+    {% else %}
+    <link rel="icon" href="{% static 'default-favicon.ico' %}">
+    {% endif %}
+    
+    <style>
+        :root {
+            --color-primary: {{ brand_colors.primary }};
+            --color-secondary: {{ brand_colors.secondary }};
+            --color-neutral-dark: {{ brand_colors.neutral_dark }};
+            --color-neutral-light: {{ brand_colors.neutral_light }};
+        }
+    </style>
+</head>
+<body>
+    {% include "home/partials/header.html" %}
+
+    <!-- News Slideshow -->
+    <div class="news-slideshow">
+        {% for article in latest_news|slice:":3" %}
+        <div class="news-slide {% if forloop.first %}active{% endif %}" style="background-image: url('{{ article.cover_image.url }}')">
+            <div class="news-slide-content">
+                <h2 class="news-slide-title">{{ article.title }}</h2>
+            </div>
+        </div>
+        {% empty %}
+        <div class="news-slide active" style="background-image: url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1500&q=80')">
+            <div class="news-slide-content">
+                <h2 class="news-slide-title">Welcome to Nugata FC</h2>
+            </div>
+        </div>
+        <div class="news-slide" style="background-image: url('https://images.unsplash.com/photo-1596510913920-85d87a1800d2?auto=format&fit=crop&w=1500&q=80')">
+            <div class="news-slide-content">
+                <h2 class="news-slide-title">The Aviators Awaits</h2>
+            </div>
+        </div>
+        <div class="news-slide" style="background-image: url('https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=1500&q=80')">
+            <div class="news-slide-content">
+                <h2 class="news-slide-title">Join The Legacy</h2>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="news-slide-controls">
+            {% for article in latest_news|slice:":3" %}
+            <div class="news-slide-dot {% if forloop.first %}active{% endif %}" data-slide="{{ forloop.counter0 }}"></div>
+            {% empty %}
+            <div class="news-slide-dot active" data-slide="0"></div>
+            <div class="news-slide-dot" data-slide="1"></div>
+            <div class="news-slide-dot" data-slide="2"></div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Match Centre Section -->
+    <section class="match-centre" id="matches">
+        <div class="match-centre-content">
+            <h2 class="section-title">Match Centre</h2>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="fixtures">Fixtures</div>
+                <div class="tab" data-tab="results">Results</div>
+                <div class="tab" data-tab="standings">Standings</div>
+            </div>
+            
+            <!-- Fixtures -->
+            <div class="tab-content active" id="fixtures">
+                <div class="fixtures-grid">
+                    {% for match in upcoming_matches %}
+                    <div class="fixture-card">
+                        <div class="fixture-header">
+                            <div class="fixture-meta">
+                                <span class="fixture-season">
+                                    <i class="fas fa-calendar-alt"></i>{{ match.season }}
+                                </span>
+                                <span class="fixture-type">
+                                    <i class="fas fa-trophy"></i>{{ match.get_match_type_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="fixture-teams">
+                            <div class="fixture-team">
+                                <img src="{{ match.home_team.logo.url }}" alt="{{ match.home_team.name }}" width="40" />
+                                <div class="fixture-team-name">{{ match.home_team.name }}</div>
+                            </div>
+                            <div class="fixture-vs">VS</div>
+                            <div class="fixture-team">
+                                <img src="{{ match.away_team.logo.url }}" alt="{{ match.away_team.name }}" width="40" />
+                                <div class="fixture-team-name">{{ match.away_team.name }}</div>
+                            </div>
+                        </div>
+                        <div class="fixture-date">{{ match.date|date:"l, M d, Y • H:i" }}</div>
+                        <div class="fixture-info">{{ match.location }}</div>
+
+                        <div class="fixture-actions">
+                            <button class="fixture-button">Details</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="text-align:center;">No fixtures available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+                        
+            <!-- Results -->
+            <div class="tab-content" id="results">
+                <div class="fixtures-grid">
+                    {% for match in recent_results %}
+                    <div class="fixture-card">
+                        <div class="fixture-header">
+                            <div class="fixture-meta">
+                                <span class="fixture-season">
+                                    <i class="fas fa-calendar-alt"></i>{{ match.season }}
+                                </span>
+                                <span class="fixture-type">
+                                    <i class="fas fa-trophy"></i>{{ match.get_match_type_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="fixture-teams">
+                            <div class="fixture-team">
+                                <img src="{{ match.home_team.logo.url }}" alt="{{ match.home_team.name }}" width="40" />
+                                <div class="fixture-team-name">{{ match.home_team.name }}</div>
+                            </div>
+                            <div class="fixture-vs">{{ match.home_score }} - {{ match.away_score }}</div>
+                            <div class="fixture-team">
+                                <img src="{{ match.away_team.logo.url }}" alt="{{ match.away_team.name }}" width="40" />
+                                <div class="fixture-team-name">{{ match.away_team.name }}</div>
+                            </div>
+                        </div>
+                        <div class="fixture-date">{{ match.date|date:"l, M d, Y • H:i" }}</div>
+                        <div class="fixture-info">{{ match.location }}</div>
+
+                        <div class="fixture-actions">
+                            <button class="fixture-button">Report</button>
+                            <button class="fixture-button">Highlights</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="text-align:center;">No results available.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="tab-content" id="standings">
+                <div class="fixture-card">
+                    <div class="fixture-header">
+                        <h3 style="color: var(--color-neutral-dark); margin: 0;">League Table</h3>
+                        <a href="{% url 'standings:full_standings' %}" class="view-all">View Full Table <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div style="overflow-x: auto; margin-top: 15px;">
+                        <table style="width: 100%; border-collapse: collapse; color: var(--color-neutral-dark);">
+                            <thead>
+                                <tr class="standings-header">
+                                    <th style="padding: 12px;">Pos</th>
+                                    <th style="padding: 12px;">Team</th>
+                                    <th style="padding: 12px; text-align: center;">P</th>
+                                    <th style="padding: 12px; text-align: center;">W</th>
+                                    <th style="padding: 12px; text-align: center;">D</th>
+                                    <th style="padding: 12px; text-align: center;">L</th>
+                                    <th style="padding: 12px; text-align: center;">GF</th>
+                                    <th style="padding: 12px; text-align: center;">GA</th>
+                                    <th style="padding: 12px; text-align: center;">GD</th>
+                                    <th style="padding: 12px; text-align: center;">Pts</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in standings %}
+                                <tr {% if row.team.name == 'Nugata FC' %}class="nugata-row"{% endif %}>
+                                    <td style="padding: 12px; text-align: center;">{{ row.calculated_position }}</td>
+                                    <td style="padding: 12px; display: flex; align-items: center; gap: 8px;">
+                                        <img src="{{ row.team.logo.url }}" alt="{{ row.team.name }}" width="24" height="24" />
+                                        {{ row.team.name }}
+                                    </td>
+                                    <td style="text-align: center;">{{ row.played }}</td>
+                                    <td style="text-align: center;">{{ row.won }}</td>
+                                    <td style="text-align: center;">{{ row.drawn }}</td>
+                                    <td style="text-align: center;">{{ row.lost }}</td>
+                                    <td style="text-align: center;">{{ row.goal_for }}</td>
+                                    <td style="text-align: center;">{{ row.goal_against }}</td>
+                                    <td style="text-align: center;">{{ row.goal_difference }}</td>
+                                    <td style="text-align: center; font-weight: bold;">{{ row.points }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="10" style="text-align:center;">No standings available.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- News Section -->
+    <section class="news" id="news">
+        <div class="news-header">
+            <h2 class="section-title">Latest News</h2>
+            <a href="{% url 'news:news_list' %}" class="view-all">View All News <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="news-grid">
+            {% for article in latest_news %}
+            <div class="news-card">
+                <div class="news-image" style="background-image: url('{{ article.cover_image.url }}')">
+                    <div class="news-tag">{{ article.get_category_display }}</div>
+                </div>
+                <div class="news-content">
+                    <div class="news-date">{{ article.created_at|date:"F d, Y" }}</div>
+                    <h3 class="news-title">{{ article.title }}</h3>
+                    <p class="news-excerpt">{{ article.excerpt|truncatechars:120 }}</p>
+                    <a href="{% url 'news:news_detail' article.slug %}" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+            {% empty %}
+            <p style="text-align:center;">No news available.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% include "home/partials/footer.html" %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile menu toggle
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const mainNav = document.getElementById('main-nav');
+            const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+            const mobileSearch = document.getElementById('mobile-search');
+            const desktopSearch = document.getElementById('desktop-search');
+
+            // Check if mobile view
+            function isMobileView() {
+                return window.innerWidth <= 768;
+            }
+
+            // Toggle mobile elements based on screen size
+            function toggleMobileElements() {
+                if (isMobileView()) {
+                    if (mobileSearchToggle) mobileSearchToggle.style.display = 'block';
+                    if (desktopSearch) desktopSearch.style.display = 'none';
+                } else {
+                    if (mobileSearch) mobileSearch.style.display = 'none';
+                    if (desktopSearch) desktopSearch.style.display = 'flex';
+                }
+            }
+
+            // Initial check
+            toggleMobileElements();
+
+            // Listen for window resize
+            window.addEventListener('resize', toggleMobileElements);
+
+            if (mobileMenuToggle && mainNav) {
+                mobileMenuToggle.addEventListener('click', function () {
+                    mainNav.classList.toggle('active');
+                    if (mobileSearch) mobileSearch.classList.remove('active');
+
+                    // Change icon based on menu state
+                    const icon = this.querySelector('i');
+                    if (mainNav.classList.contains('active')) {
+                        icon.classList.remove('fa-bars');
+                        icon.classList.add('fa-times');
+                    } else {
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    }
+                });
+            }
+
+            if (mobileSearchToggle && mobileSearch) {
+                mobileSearchToggle.addEventListener('click', function () {
+                    mobileSearch.style.display = mobileSearch.style.display === 'none' ? 'block' : 'none';
+                    if (mainNav) mainNav.classList.remove('active');
+
+                    // Reset menu icon
+                    if (mobileMenuToggle) {
+                        const menuIcon = mobileMenuToggle.querySelector('i');
+                        menuIcon.classList.remove('fa-times');
+                        menuIcon.classList.add('fa-bars');
+                    }
+                });
+            }
+
+            // News slideshow functionality
+            const newsSlides = document.querySelectorAll('.news-slide');
+            const newsDots = document.querySelectorAll('.news-slide-dot');
+            let currentNewsSlide = 0;
+
+            function showNewsSlide(n) {
+                newsSlides.forEach((slide) => slide.classList.remove('active'));
+                newsDots.forEach((dot) => dot.classList.remove('active'));
+
+                currentNewsSlide = (n + newsSlides.length) % newsSlides.length;
+
+                newsSlides[currentNewsSlide].classList.add('active');
+                newsDots[currentNewsSlide].classList.add('active');
+            }
+
+            newsDots.forEach((dot) => {
+                dot.addEventListener('click', function () {
+                    showNewsSlide(parseInt(this.getAttribute('data-slide')));
+                });
+            });
+
+            setInterval(() => {
+                showNewsSlide(currentNewsSlide + 1);
+            }, 5000);
+
+            // Match centre tabs functionality
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-tab');
+
+                    // Remove active class from all tabs and contents
+                    tabs.forEach((t) => t.classList.remove('active'));
+                    tabContents.forEach((c) => c.classList.remove('active'));
+
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+
+            // News card animation on scroll
+            const newsCards = document.querySelectorAll('.news-card');
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1,
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            // Initialize news cards with hidden state
+            newsCards.forEach((card) => {
+                card.style.opacity = 0;
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>

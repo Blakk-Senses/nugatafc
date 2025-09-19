@@ -1,0 +1,685 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manage Fixtures & Results — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+
+  
+  <style>
+    /* Enhanced styling for the fixtures manager */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .create-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    
+    .create-btn:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+    
+    .fixtures-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .fixture-card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+    
+    .fixture-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    
+    .fixture-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .fixture-date {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-light);
+      font-size: 14px;
+    }
+    
+    .fixture-date i {
+      color: var(--primary);
+    }
+    
+    .match-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .status-upcoming {
+      background: #fffbeb;
+      color: #f59e0b;
+      border: 1px solid #fde68a;
+    }
+    
+    .status-finished {
+      background: #ecfdf5;
+      color: #10b981;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .match-content {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .team-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--light);
+      transition: var(--transition);
+    }
+    
+    .team-card:hover {
+      background: var(--primary-light);
+    }
+    
+    .team-logo {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--lighter);
+    }
+    
+    .team-name {
+      font-weight: 600;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    .score-display {
+      text-align: center;
+      min-width: 80px;
+    }
+    
+    .score {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0;
+    }
+    
+    .vs-text {
+      font-size: 12px;
+      color: var(--text-light);
+      margin: 4px 0 0 0;
+    }
+    
+    .match-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .location {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-light);
+      font-size: 14px;
+    }
+    
+    .location i {
+      color: var(--primary);
+    }
+    
+    .match-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+      background: var(--lighter);
+      color: var(--text);
+      cursor: pointer;
+    }
+    
+    .action-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary-light);
+    }
+    
+    .action-btn.delete {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fecaca;
+    }
+    
+    .action-btn.delete:hover {
+      background: #fee2e2;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    .modal-content {
+      background: var(--lighter);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    
+    .modal-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #fef2f2;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    
+    .modal-body {
+      margin-bottom: 24px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+      background: var(--lighter);
+      border-radius: var(--radius);
+      border: 2px dashed var(--border);
+    }
+    
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      color: var(--border);
+    }
+    
+    .empty-text {
+      margin-bottom: 24px;
+    }
+    
+    /* Filters and View Controls */
+    .view-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .filter-tabs {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .filter-tab {
+      padding: 8px 16px;
+      background: var(--lighter);
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+      border-right: 1px solid var(--border);
+    }
+    
+    .filter-tab:last-child {
+      border-right: none;
+    }
+    
+    .filter-tab.active {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .search-box {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition);
+      width: 250px;
+    }
+    
+    .search-box:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      width: 100%;
+    }
+    
+    /* Competition badges */
+    .competition-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--light);
+      color: var(--text);
+      margin-left: 12px;
+    }
+    
+    @media (max-width: 768px) {
+      .match-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      
+      .score-display {
+        order: -1;
+        margin-bottom: 16px;
+      }
+      
+      .view-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-box {
+        width: 100%;
+      }
+      
+      .filter-tabs {
+        width: 100%;
+        justify-content: stretch;
+      }
+      
+      .filter-tab {
+        flex: 1;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    {% include "dashboard/partials/sidebar.html" %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="header">
+        <h1 class="page-title">Manage Fixtures & Results</h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search fixtures..." id="fixtureSearch">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-container">
+        <div class="page-header">
+          <h2 style="margin: 0;">Matches & Fixtures</h2>
+          <a href="{% url 'dashboard:manage_match' %}" class="create-btn">
+            <i class="fas fa-plus"></i> Add Fixture
+          </a>
+        </div>
+
+        <!-- View Controls -->
+        <div class="view-controls">
+          <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All Matches</button>
+            <button class="filter-tab" data-filter="upcoming">Upcoming</button>
+            <button class="filter-tab" data-filter="finished">Finished</button>
+          </div>
+        </div>
+
+        {% if matches %}
+        <div class="fixtures-container" id="fixturesContainer">
+          {% for match in matches %}
+          <div class="fixture-card" 
+               data-status="{{ match.status }}" 
+               data-home="{{ match.home_team.name|lower }}" 
+               data-away="{{ match.away_team.name|lower }}" 
+               data-location="{{ match.location|lower }}" 
+               data-competition="{{ match.get_match_type_display|lower }}"
+               data-season="{{ match.season|lower }}">
+            
+            <div class="fixture-header">
+              <div class="fixture-date">
+                <span class="season-badge">
+                  <i class="fas fa-calendar"></i> {{ match.season }}
+                </span>
+                <span class="competition-badge">
+                  <i class="fas fa-trophy"></i> {{ match.get_match_type_display }}
+                </span>
+                <i class="fas fa-calendar-alt"></i>
+                {{ match.date|date:"M d, Y • H:i" }}
+              </div>
+              
+              <span class="match-status {% if match.is_finished %}status-finished{% else %}status-upcoming{% endif %}">
+                <i class="fas {% if match.is_finished %}fa-check-circle{% else %}fa-clock{% endif %}"></i>
+                {% if match.is_finished %}Finished{% else %}Upcoming{% endif %}
+              </span>
+            </div>
+            
+            <div class="match-content">
+              <div class="team-card">
+                {% if match.home_team.logo %}
+                <img src="{{ match.home_team.logo.url }}" alt="{{ match.home_team.name }}" class="team-logo">
+                {% else %}
+                <div class="team-logo"><i class="fas fa-shield-alt"></i></div>
+                {% endif %}
+                <span class="team-name">{{ match.home_team.name }}</span>
+              </div>
+              
+              <div class="score-display">
+                {% if match.is_finished %}
+                <h3 class="score">{{ match.home_score }} - {{ match.away_score }}</h3>
+                {% else %}
+                <h3 class="score">VS</h3>
+                {% endif %}
+                <p class="vs-text">{% if match.is_finished %}Full Time{% else %}Kickoff{% endif %}</p>
+              </div>
+              
+              <div class="team-card">
+                {% if match.away_team.logo %}
+                <img src="{{ match.away_team.logo.url }}" alt="{{ match.away_team.name }}" class="team-logo">
+                {% else %}
+                <div class="team-logo"><i class="fas fa-shield-alt"></i></div>
+                {% endif %}
+                <span class="team-name">{{ match.away_team.name }}</span>
+              </div>
+            </div>
+            
+            <div class="match-details">
+              <div class="location">
+                <i class="fas fa-map-marker-alt"></i>
+                {{ match.location }}
+              </div>
+              
+              <div class="match-actions">
+                <a href="{% url 'dashboard:match_edit' match.pk %}" class="action-btn">
+                  <i class="fas fa-edit"></i> Edit
+                </a>
+                <button onclick="openDeleteModal(this)" 
+                        data-url="{% url 'dashboard:match_delete' match.pk %}" 
+                        data-title="{{ match.home_team.name }} vs {{ match.away_team.name }}"
+                        class="action-btn delete">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- "No results found" placeholder -->
+        <div id="noResults" class="empty-state" style="display: none;">
+          <div class="empty-icon"><i class="fas fa-search"></i></div>
+          <h3 class="empty-text">No Matches Found</h3>
+          <p>Try adjusting your search or filter settings.</p>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon"><i class="fas fa-calendar-times"></i></div>
+          <h3 class="empty-text">No Fixtures Added Yet</h3>
+          <p>Get started by adding your first fixture to the system.</p>
+          <a href="{% url 'dashboard:manage_match' %}" class="create-btn" style="margin-top: 16px;">
+            <i class="fas fa-plus"></i> Add Fixture
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <h3 class="modal-title">Delete Fixture</h3>
+      </div>
+      <div class="modal-body">
+        <p id="deleteText">Are you sure you want to delete this fixture? This action cannot be undone.</p>
+      </div>
+      <div class="modal-actions">
+        <form id="deleteForm" method="post">
+          {% csrf_token %}
+          <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn" style="background: var(--danger); color: white;">Delete Fixture</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('fixtureSearch');
+    const fixtureCards = document.querySelectorAll('.fixture-card');
+    const tabs = document.querySelectorAll('.filter-tab');
+    const noResults = document.getElementById('noResults');
+    let activeFilter = "all";
+
+    function applyFilters() {
+      const searchTerm = searchInput.value.toLowerCase();
+      let visibleCount = 0;
+
+      fixtureCards.forEach(card => {
+        const status = card.dataset.status;
+        const home = card.dataset.home;
+        const away = card.dataset.away;
+        const location = card.dataset.location;
+        const competition = card.dataset.competition;
+        const season = card.dataset.season;
+
+        const matchesSearch =
+          home.includes(searchTerm) ||
+          away.includes(searchTerm) ||
+          location.includes(searchTerm) ||
+          competition.includes(searchTerm) ||
+          season.includes(searchTerm);
+
+        const matchesFilter =
+          activeFilter === "all" || status === activeFilter;
+
+        const isVisible = matchesSearch && matchesFilter;
+        card.style.display = isVisible ? "block" : "none";
+        if (isVisible) visibleCount++;
+      });
+
+      noResults.style.display = visibleCount === 0 ? "block" : "none";
+    }
+
+    // Search functionality
+    searchInput.addEventListener('input', applyFilters);
+
+    // Filter tab functionality
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        tabs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        activeFilter = this.dataset.filter;
+        applyFilters();
+      });
+    });
+
+    // Delete modal functions
+    function openDeleteModal(button) {
+      const url = button.getAttribute("data-url");
+      const matchTitle = button.getAttribute("data-title");
+      document.getElementById("deleteModal").style.display = "flex";
+      document.getElementById("deleteText").innerText =
+        `Are you sure you want to delete "${matchTitle}"? This action cannot be undone.`;
+      document.getElementById("deleteForm").action = url;
+    }
+    function closeDeleteModal() {
+      document.getElementById("deleteModal").style.display = "none";
+    }
+    document.getElementById("deleteModal").addEventListener("click", function(e) {
+      if (e.target === this) closeDeleteModal();
+    });
+
+    // Run filters once on page load
+    applyFilters();
+  </script>
+</body>
+
+
+</html>

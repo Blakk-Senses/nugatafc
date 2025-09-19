@@ -1,0 +1,731 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Team Settings — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+  <style>
+    /* Enhanced styles for better visual organization */
+    .color-preview {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+      border: 1px solid var(--border);
+    }
+    
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    
+    .settings-card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .settings-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .settings-card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 20px 0;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .crest-preview, .favicon-preview {
+      max-width: 100px;
+      max-height: 100px;
+      margin-top: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 4px;
+      background: white;
+    }
+    
+    .favicon-preview {
+      max-width: 36px;
+      max-height: 36px;
+    }
+    
+    .image-upload-hint {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 6px;
+    }
+    
+    .social-input-group {
+      display: flex;
+      align-items: center;
+    }
+    
+    .social-input-group .social-icon {
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      padding: 10px 12px;
+      color: var(--text-light);
+    }
+    
+    .social-input-group input {
+      border-radius: 0 8px 8px 0;
+      flex: 1;
+    }
+    
+    .menu-items-container {
+      margin-top: 16px;
+    }
+    
+    .menu-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 12px;
+      background: var(--light);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    
+    .menu-item input {
+      flex: 1;
+    }
+    
+    .add-menu-item {
+      margin-top: 12px;
+    }
+    
+    .remove-menu-item {
+      background: var(--danger);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .remove-menu-item:hover {
+      background: var(--danger-dark);
+    }
+    
+    .form-actions {
+      position: sticky;
+      bottom: 0;
+      background: white;
+      padding: 20px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 30px;
+    }
+    
+    .social-pills { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+      margin-bottom: 15px; 
+    }
+    
+    .social-pill { 
+      background: #1f2937; 
+      color: white; 
+      padding: 6px 12px; 
+      border-radius: 999px;
+      display: flex; 
+      align-items: center; 
+      gap: 6px; 
+      font-size: 0.9rem; 
+    }
+    
+    .pill-link { 
+      background: rgba(255, 255, 255, 0.15); 
+      padding: 2px 6px; 
+      border-radius: 6px;
+      color: #ddd; 
+      text-decoration: none; 
+      font-size: 0.8rem; 
+      transition: background 0.2s ease;
+    }
+    
+    .pill-link:hover { 
+      background: rgba(255, 255, 255, 0.3); 
+    }
+    
+    .pill-delete { 
+      color: #f87171; 
+      margin-left: 8px; 
+      font-weight: bold; 
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    
+    .pill-delete:hover { 
+      color: #ef4444; 
+    }
+    
+    .color-input-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .color-input-group input {
+      flex: 1;
+    }
+    
+    .section-divider {
+      height: 1px;
+      background: var(--border-light);
+      margin: 20px 0;
+    }
+    
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    {% include "dashboard/partials/sidebar.html" %}
+
+    <div class="main-content">
+      <div class="header">
+        <h1 class="page-title">Team Settings</h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search...">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if messages %}
+        <div class="form-container">
+          {% for message in messages %}
+            <div class="status-badge {% if message.tags == 'success' %}status-published{% else %}status-draft{% endif %}">
+              <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Club General Settings Form -->
+      <div class="form-container">
+        <form method="POST" enctype="multipart/form-data" action="{% url 'dashboard:update_club_settings' %}" id="club-settings-form">
+          {% csrf_token %}
+          <div class="settings-grid">
+            <!-- Team Identity -->
+            <div class="settings-card">
+              <h2 class="settings-card-title"><i class="fas fa-shield-alt"></i> Team Identity</h2>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.club_name.id_for_label }}">Team Name</label>
+                {{ form.club_name }}
+                {% for error in form.club_name.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.crest.id_for_label }}">Team Crest</label>
+                {% if form.instance.crest %}
+                  <img src="{{ form.instance.crest.url }}" class="crest-preview" id="crest-preview">
+                {% endif %}
+                {{ form.crest }}
+                {% for error in form.crest.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.favicon.id_for_label }}">Favicon</label>
+                {% if form.instance.favicon %}
+                  <img src="{{ form.instance.favicon.url }}" class="favicon-preview" id="favicon-preview">
+                {% endif %}
+                {{ form.favicon }}
+                {% for error in form.favicon.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Colors -->
+            <!-- Colors -->
+            <div class="settings-card">
+              <h2 class="settings-card-title"><i class="fas fa-palette"></i> Team Colors</h2>
+
+              <!-- Primary -->
+              <div class="form-group">
+                <label class="form-label" for="{{ form.primary_color.id_for_label }}">Primary Color</label>
+                {{ form.primary_color }}
+                {% for error in form.primary_color.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+                <span class="color-preview" id="primary-color-preview" style="background: {{ form.primary_color.value|default:'#228B22' }}"></span>
+              </div>
+
+              <!-- Secondary -->
+              <div class="form-group">
+                <label class="form-label" for="{{ form.secondary_color.id_for_label }}">Secondary Color</label>
+                {{ form.secondary_color }}
+                {% for error in form.secondary_color.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+                <span class="color-preview" id="secondary-color-preview" style="background: {{ form.secondary_color.value|default:'#FFD700' }}"></span>
+              </div>
+
+              <!-- Neutral Dark -->
+              <div class="form-group">
+                <label class="form-label" for="{{ form.neutral_dark.id_for_label }}">Neutral Dark</label>
+                {{ form.neutral_dark }}
+                {% for error in form.neutral_dark.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+                <span class="color-preview" id="neutral-dark-preview" style="background: {{ form.neutral_dark.value|default:'#000000' }}"></span>
+              </div>
+
+              <!-- Neutral Light -->
+              <div class="form-group">
+                <label class="form-label" for="{{ form.neutral_light.id_for_label }}">Neutral Light</label>
+                {{ form.neutral_light }}
+                {% for error in form.neutral_light.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+                <span class="color-preview" id="neutral-light-preview" style="background: {{ form.neutral_light.value|default:'#FFFFFF' }}"></span>
+              </div>
+            </div>
+
+
+            <!-- Venues -->
+            <div class="settings-card">
+              <h2 class="settings-card-title"><i class="fas fa-map-marker-alt"></i> Venues</h2>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.home_ground.id_for_label }}">Home Ground</label>
+                {{ form.home_ground }}
+                {% for error in form.home_ground.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.training_ground.id_for_label }}">Training Ground</label>
+                {{ form.training_ground }}
+                {% for error in form.training_ground.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="settings-card">
+              <h2 class="settings-card-title"><i class="fas fa-address-book"></i> Contact Information</h2>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.contact_email.id_for_label }}">Email Address</label>
+                {{ form.contact_email }}
+                {% for error in form.contact_email.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.contact_phone.id_for_label }}">Phone Number</label>
+                {{ form.contact_phone }}
+                {% for error in form.contact_phone.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Season -->
+            <div class="settings-card">
+              <h2 class="settings-card-title"><i class="fas fa-calendar-alt"></i> Season Information</h2>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.current_season.id_for_label }}">Current Season</label>
+                {{ form.current_season }}
+                {% for error in form.current_season.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+
+
+            <!-- Other -->
+            <div class="settings-card">
+              <h2 class="settings-card-title"><i class="fas fa-cog"></i> Additional Settings</h2>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.site_title.id_for_label }}">Site Title</label>
+                {{ form.site_title }}
+                {% for error in form.site_title.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.meta_description.id_for_label }}">Meta Description</label>
+                {{ form.meta_description }}
+                {% for error in form.meta_description.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="{{ form.google_analytics_id.id_for_label }}">Google Analytics ID</label>
+                {{ form.google_analytics_id }}
+                {% for error in form.google_analytics_id.errors %}
+                  <div class="error">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a href="#" class="btn-link">Cancel</a>
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Settings</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Social Links Pills -->
+      <div class="settings-card">
+        <h2 class="settings-card-title"><i class="fas fa-share-alt"></i> Social Media</h2>
+
+        {% if club_settings.social_links.exists %}
+          <div class="social-pills">
+            {% for link in club_settings.social_links.all %}
+              <span class="social-pill">
+                <i class="fab fa-{{ link.platform }}"></i> {{ link.get_platform_display }}
+                <a href="{{ link.url }}" target="_blank" class="pill-link">Visit</a>
+                <a href="{% url 'dashboard:social_delete' link.id %}" class="pill-delete" title="Delete">&times;</a>
+              </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="color:#999;">No socials added yet</p>
+        {% endif %}
+
+        <!-- Social Links Formset -->
+        <form method="POST" action="{% url 'dashboard:update_social_links' %}" id="social-links-form" style="display:none;">
+          {% csrf_token %}
+          {{ social_formset.management_form }}
+
+          <div id="social-links-formset">
+            {% for social_form in social_formset %}
+              <div class="social-form">
+                <div class="form-group">
+                  <label class="form-label" for="{{ social_form.platform.id_for_label }}">Platform</label>
+                  {{ social_form.platform }}
+                  {% for error in social_form.platform.errors %}
+                    <div class="error">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="{{ social_form.url.id_for_label }}">URL</label>
+                  {{ social_form.url }}
+                  {% for error in social_form.url.errors %}
+                    <div class="error">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                {{ social_form.id }}
+                {% if social_form.DELETE %}
+                  {{ social_form.DELETE }}
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Social Links</button>
+          <button type="button" id="cancel-social" class="btn btn-secondary">Cancel</button>
+        </form>
+
+        <button type="button" id="add-social-btn" class="btn btn-sm btn-secondary" style="margin-top:10px;">
+          <i class="fas fa-plus"></i> Add Social Link
+        </button>
+      </div>
+
+      <!-- Menu Items Pills -->
+      <div class="settings-card">
+        <h2 class="settings-card-title"><i class="fas fa-bars"></i> Navigation Menu</h2>
+
+        {% if club_settings.menu_items.exists %}
+          <div class="social-pills">
+            {% for item in club_settings.menu_items.all %}
+              <span class="social-pill">
+                {{ item.label }}
+                <a href="{{ item.get_url }}" target="_blank" class="pill-link">Visit</a>
+                <a href="{% url 'dashboard:menu_delete' item.id %}" class="pill-delete" title="Delete">&times;</a>
+              </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="color:#999;">No menu items added yet</p>
+        {% endif %}
+
+        <!-- Menu Items Formset -->
+        <form method="POST" action="{% url 'dashboard:update_menu_items' %}" id="menu-items-form" style="display:none;">
+          {% csrf_token %}
+          {{ menu_formset.management_form }}
+
+          <div id="menu-items-formset">
+            {% for menu_form in menu_formset %}
+              <div class="menu-form">
+                <div class="form-group">
+                  <label class="form-label" for="{{ menu_form.label.id_for_label }}">Label</label>
+                  {{ menu_form.label }}
+                  {% for error in menu_form.label.errors %}
+                    <div class="error">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="{{ menu_form.url_name.id_for_label }}">URL Name</label>
+                  {{ menu_form.url_name }}
+                  {% for error in menu_form.url_name.errors %}
+                    <div class="error">{{ error }}</div>
+                  {% endfor %}
+                  <small class="form-help">Django URL name (optional)</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="{{ menu_form.external_url.id_for_label }}">External URL</label>
+                  {{ menu_form.external_url }}
+                  {% for error in menu_form.external_url.errors %}
+                    <div class="error">{{ error }}</div>
+                  {% endfor %}
+                  <small class="form-help">External link (optional)</small>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="{{ menu_form.order.id_for_label }}">Order</label>
+                  {{ menu_form.order }}
+                  {% for error in menu_form.order.errors %}
+                    <div class="error">{{ error }}</div>
+                  {% endfor %}
+                </div>
+                {{ menu_form.id }}
+                {% if menu_form.DELETE %}
+                  {{ menu_form.DELETE }}
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Menu Items</button>
+          <button type="button" id="cancel-menu" class="btn btn-secondary">Cancel</button>
+        </form>
+
+        <button type="button" id="add-menu-btn" class="btn btn-sm btn-secondary" style="margin-top:10px;">
+          <i class="fas fa-plus"></i> Add Menu Item
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    .social-pills { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px; }
+    .social-pill { background:#1f2937; color:white; padding:6px 12px; border-radius:999px;
+                   display:flex; align-items:center; gap:6px; font-size:0.9rem; }
+    .pill-link { background:rgba(255,255,255,0.15); padding:2px 6px; border-radius:6px;
+                 color:#ddd; text-decoration:none; font-size:0.8rem; }
+    .pill-link:hover { background:rgba(255,255,255,0.3); }
+    .pill-delete { color:#f87171; margin-left:8px; font-weight:bold; text-decoration:none; cursor:pointer; }
+    .pill-delete:hover { color:#ef4444; }
+    .form-help { color:#6b7280; font-size:0.8rem; margin-top:4px; display:block; }
+    .social-form, .menu-form { background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    .social-form .form-group, .menu-form .form-group { margin-bottom: 10px; }
+    .social-form label, .menu-form label { display: block; margin-bottom: 5px; font-weight: 500; }
+    .hidden-form { display: none; }
+    .visible-form { display: block; }
+    .error { color: #ef4444; margin-top: 2px; font-size: 0.85em; }
+  </style>
+
+  <script>
+    // Show formsets when "Add" buttons clicked, hide pills and add button
+    document.addEventListener("DOMContentLoaded", function() {
+      const addSocialBtn = document.getElementById('add-social-btn');
+      const socialForm = document.getElementById('social-links-form');
+      const cancelSocialBtn = document.getElementById('cancel-social');
+      const socialPills = document.querySelector('.settings-card:nth-of-type(2) .social-pills');
+      
+      const addMenuBtn = document.getElementById('add-menu-btn');
+      const menuForm = document.getElementById('menu-items-form');
+      const cancelMenuBtn = document.getElementById('cancel-menu');
+      const menuPills = document.querySelector('.settings-card:nth-of-type(3) .social-pills');
+
+      if (addSocialBtn && socialForm && cancelSocialBtn) {
+        addSocialBtn.addEventListener('click', function() {
+          socialForm.style.display = 'block';
+          if (socialPills) socialPills.style.display = 'none';
+          addSocialBtn.style.display = 'none';
+        });
+        cancelSocialBtn.addEventListener('click', function() {
+          socialForm.style.display = 'none';
+          if (socialPills) socialPills.style.display = 'flex';
+          addSocialBtn.style.display = 'inline-block';
+        });
+      }
+
+      if (addMenuBtn && menuForm && cancelMenuBtn) {
+        addMenuBtn.addEventListener('click', function() {
+          menuForm.style.display = 'block';
+          if (menuPills) menuPills.style.display = 'none';
+          addMenuBtn.style.display = 'none';
+        });
+        cancelMenuBtn.addEventListener('click', function() {
+          menuForm.style.display = 'none';
+          if (menuPills) menuPills.style.display = 'flex';
+          addMenuBtn.style.display = 'inline-block';
+        });
+      }
+
+      // Add new social form dynamically
+      addSocialBtn?.addEventListener('click', function () {
+        addSocialForm();
+      });
+
+      // Add new menu form dynamically
+      addMenuBtn?.addEventListener('click', function () {
+        addMenuForm();
+      });
+
+      // Dynamic form add functions
+      function addSocialForm() {
+        const formset = document.querySelector('#social-links-formset');
+        const totalFormsInput = document.querySelector('#social-links-form input[name="social-TOTAL_FORMS"]');
+        if (!totalFormsInput) return;
+        const formCount = parseInt(totalFormsInput.value, 10);
+
+        const platformOptions = [
+          {value: "", label: "Select Platform"},
+          {value: "facebook", label: "Facebook"},
+          {value: "twitter", label: "Twitter / X"},
+          {value: "instagram", label: "Instagram"},
+          {value: "youtube", label: "YouTube"},
+          {value: "tiktok", label: "TikTok"},
+        ];
+
+        let optionsHtml = platformOptions.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join('');
+
+        const formHtml = `
+          <div class="social-form">
+            <div class="form-group">
+              <label class="form-label" for="id_social-${formCount}-platform">Platform</label>
+              <select name="social-${formCount}-platform" id="id_social-${formCount}-platform" required>
+                ${optionsHtml}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="id_social-${formCount}-url">URL</label>
+              <input type="url" name="social-${formCount}-url" id="id_social-${formCount}-url" placeholder="https://..." required>
+            </div>
+            <input type="hidden" name="social-${formCount}-id" id="id_social-${formCount}-id" value="">
+          </div>
+        `;
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = formHtml;
+        formset.appendChild(tempDiv.firstElementChild);
+
+        totalFormsInput.value = formCount + 1;
+      }
+
+      function addMenuForm() {
+        const formset = document.querySelector('#menu-items-formset');
+        const totalFormsInput = document.querySelector('#menu-items-form input[name="menu-TOTAL_FORMS"]');
+        if (!totalFormsInput) return;
+        const formCount = parseInt(totalFormsInput.value, 10);
+
+        const formHtml = `
+          <div class="menu-form">
+            <div class="form-group">
+              <label class="form-label" for="id_menu-${formCount}-label">Label</label>
+              <input type="text" name="menu-${formCount}-label" id="id_menu-${formCount}-label" placeholder="Menu item text" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="id_menu-${formCount}-url_name">URL Name</label>
+              <input type="text" name="menu-${formCount}-url_name" id="id_menu-${formCount}-url_name" placeholder="Django URL name (optional)">
+              <small class="form-help">Django URL name (optional)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="id_menu-${formCount}-external_url">External URL</label>
+              <input type="url" name="menu-${formCount}-external_url" id="id_menu-${formCount}-external_url" placeholder="https://... (optional)">
+              <small class="form-help">External link (optional)</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="id_menu-${formCount}-order">Order</label>
+              <input type="number" name="menu-${formCount}-order" id="id_menu-${formCount}-order" value="0" min="0" required>
+            </div>
+            <input type="hidden" name="menu-${formCount}-id" id="id_menu-${formCount}-id" value="">
+          </div>
+        `;
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = formHtml;
+        formset.appendChild(tempDiv.firstElementChild);
+
+        totalFormsInput.value = formCount + 1;
+      }
+    });
+  </script>
+</body>
+
+</html>

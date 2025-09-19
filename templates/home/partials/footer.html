@@ -1,0 +1,99 @@
+<!-- Footer -->
+<footer>
+    <div class="footer-content">
+        <!-- Club Info -->
+        <div class="footer-section">
+            <h3 class="footer-title">{{ club_settings.club_name|default:"Nugata FC" }}</h3>
+            
+            {% if club_settings.meta_description %}
+                <p style="color: #f0f0f0; margin-bottom: 20px;">
+                    {{ club_settings.meta_description }}
+                </p>
+            {% else %}
+                <p style="color: #f0f0f0; margin-bottom: 20px;">
+                    Founded in 2011, Nugata FC is an amateur football club based in Ave-Afiadenyigba, 
+                    Akatsi North District, Volta Region, Ghana. Competing in the Volta Regional 
+                    Division Two League, the club is dedicated to developing local talent and 
+                    promoting excellence on and off the pitch.
+                </p>
+            {% endif %}
+
+            <!-- Socials -->
+            <div class="social-icons">
+                {% for social in club_settings.social_links.all %}
+                    <a href="{{ social.url }}" target="_blank">
+                        {% if social.platform == "facebook" %}
+                            <i class="fab fa-facebook-f"></i>
+                        {% elif social.platform == "twitter" %}
+                            <i class="fab fa-x-twitter"></i>
+                        {% elif social.platform == "instagram" %}
+                            <i class="fab fa-instagram"></i>
+                        {% elif social.platform == "youtube" %}
+                            <i class="fab fa-youtube"></i>
+                        {% elif social.platform == "tiktok" %}
+                            <i class="fab fa-tiktok"></i>
+                        {% endif %}
+                    </a>
+                {% empty %}
+                    <p style="color: #aaa;">No social links available</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="footer-section">
+            <h3 class="footer-title">Quick Links</h3>
+            <div class="footer-links">
+                {% with menu_items=club_settings.get_menu_items %}
+                    {% if menu_items %}
+                        {% for item in menu_items %}
+                            <a href="{{ item.url }}">{{ item.label }}</a>
+                        {% endfor %}
+                    {% else %}
+                        <!-- fallback if no menu -->
+                        <a href="{% url 'home:home' %}">Home</a>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+
+        <!-- Support -->
+        <div class="footer-section">
+            <h3 class="footer-title">Support</h3>
+            <div class="footer-links">
+                {% if club_settings.contact_email %}
+                    <a href="mailto:{{ club_settings.contact_email }}">
+                        <i class="fas fa-envelope"></i> {{ club_settings.contact_email }}
+                    </a>
+                {% endif %}
+                {% if club_settings.contact_phone %}
+                    <a href="tel:{{ club_settings.contact_phone }}">
+                        <i class="fas fa-phone"></i> {{ club_settings.contact_phone }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Newsletter -->
+        <div class="footer-section">
+            <h3 class="footer-title">Newsletter</h3>
+            <p style="color: #f0f0f0; margin-bottom: 20px;">
+                Subscribe to get the latest news and updates
+            </p>
+            <div class="footer-newsletter">
+                <form class="newsletter-form">
+                    <input type="email" class="newsletter-input" placeholder="Your email address">
+                    <button type="submit" class="newsletter-button">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copyright -->
+    <div class="copyright">
+        <p>
+            &copy; {{ now.year }} {{ club_settings.club_name|default:"Nugata FC" }}. 
+            All rights reserved | Designed by Mabs Media.
+        </p>
+    </div>
+</footer>

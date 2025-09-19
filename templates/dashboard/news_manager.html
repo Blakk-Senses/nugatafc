@@ -1,0 +1,517 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manage News — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+
+  
+  <style>
+    /* Enhanced styling for the news manager */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .create-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    
+    .create-btn:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+    
+    .news-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--lighter);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    
+    .news-table th {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      text-align: left;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .news-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+    
+    .news-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .news-table tr:hover {
+      background: #f8fafc;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .status-draft {
+      background: #fffbeb;
+      color: #f59e0b;
+      border: 1px solid #fde68a;
+    }
+    
+    .status-published {
+      background: #ecfdf5;
+      color: #10b981;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .category-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--light);
+      color: var(--text);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+      background: var(--lighter);
+      color: var(--text);
+      cursor: pointer;
+    }
+    
+    .action-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary-light);
+    }
+    
+    .action-btn.publish {
+      background: #ecfdf5;
+      color: #10b981;
+      border-color: #a7f3d0;
+    }
+    
+    .action-btn.publish:hover {
+      background: #d1fae5;
+    }
+    
+    .action-btn.delete {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fecaca;
+    }
+    
+    .action-btn.delete:hover {
+      background: #fee2e2;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    .modal-content {
+      background: var(--lighter);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    
+    .modal-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #fef2f2;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    
+    .modal-body {
+      margin-bottom: 24px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+    }
+    
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: var(--border);
+    }
+    
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--lighter);
+      color: var(--text);
+      font-size: 14px;
+    }
+    
+    @media (max-width: 768px) {
+      .news-table {
+        display: block;
+        overflow-x: auto;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+    .tag-badge {
+      display: inline-block;
+      background: #eef;
+      color: #336;
+      padding: 2px 8px;
+      margin: 2px;
+      font-size: 12px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    {% include "dashboard/partials/sidebar.html" %}
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="header">
+        <h1 class="page-title">Manage News</h1>
+        <div class="user-menu">
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-container">
+        <div class="page-header">
+          <h2 style="margin: 0;">News Articles</h2>
+          <a href="{% url 'dashboard:news_create' %}" class="create-btn">
+            <i class="fas fa-plus"></i> Create News
+          </a>
+        </div>
+
+        <!-- Filters + Search -->
+        <form method="get" class="filters">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input 
+              type="text" 
+              name="q" 
+              value="{{ request.GET.q }}" 
+              placeholder="Search news..."
+            >
+          </div>
+
+          <select name="status" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+            <option value="published" {% if request.GET.status == "published" %}selected{% endif %}>Published</option>
+            <option value="draft" {% if request.GET.status == "draft" %}selected{% endif %}>Draft</option>
+          </select>
+          
+          <select name="category" class="filter-select" onchange="this.form.submit()">
+            <option value="">All Categories</option>
+            <option value="training" {% if request.GET.category == "training" %}selected{% endif %}>Training</option>
+            <option value="transfer" {% if request.GET.category == "transfer" %}selected{% endif %}>Transfer</option>
+            <option value="report" {% if request.GET.category == "report" %}selected{% endif %}>Match Report</option>
+            <option value="general" {% if request.GET.category == "general" %}selected{% endif %}>News</option>
+          </select>
+          
+          <select name="sort" class="filter-select" onchange="this.form.submit()">
+            <option value="-created_at" {% if request.GET.sort == "-created_at" %}selected{% endif %}>Newest First</option>
+            <option value="created_at" {% if request.GET.sort == "created_at" %}selected{% endif %}>Oldest First</option>
+            <option value="title" {% if request.GET.sort == "title" %}selected{% endif %}>Title A-Z</option>
+          </select>
+
+          <button type="submit" class="btn" style="margin-left: 10px;">
+            Apply
+          </button>
+        </form>
+
+        {% if news %}
+        <table class="news-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Category</th>
+              <th>Tags</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for post in news %}
+            <tr>
+              <td>
+                <div style="font-weight: 500; margin-bottom: 4px;">{{ post.title }}</div>
+                {% if post.excerpt %}
+                <div style="font-size: 13px; color: var(--text-light);">{{ post.excerpt|truncatewords:10 }}</div>
+                {% endif %}
+              </td>
+              <td>
+                {% if post.status == "published" %}
+                <span class="status-badge status-published">
+                  <i class="fas fa-check-circle"></i> Published
+                </span>
+                {% else %}
+                <span class="status-badge status-draft">
+                  <i class="fas fa-clock"></i> Draft
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="category-badge">{{ post.category }}</span>
+              </td>
+              <td>
+                {% for tag in post.tags.all %}
+                  <span class="tag-badge">{{ tag.name }}</span>
+                {% empty %}
+                  <span style="color: #999;">No tags</span>
+                {% endfor %}
+              </td>
+              <td>{{ post.created_at|date:"M d, Y" }}</td>
+              <td>
+                <div class="action-buttons">
+                  <a href="{% url 'dashboard:news_edit' post.pk %}" class="action-btn">
+                    <i class="fas fa-edit"></i> Edit
+                  </a>
+                  
+                  {% if post.status == "draft" %}
+                  <a href="{% url 'dashboard:news_publish' post.pk %}" class="action-btn publish">
+                    <i class="fas fa-check"></i> Publish
+                  </a>
+                  {% endif %}
+                  
+                  <button onclick="openDeleteModal(this)" 
+                          data-url="{% url 'dashboard:news_delete' post.pk %}" 
+                          data-title="{{ post.title }}"
+                          class="action-btn delete">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-newspaper"></i>
+          </div>
+          <h3>No News Articles Found</h3>
+          <p>Try adjusting your search or filters.</p>
+          <a href="{% url 'dashboard:news_create' %}" class="create-btn" style="margin-top: 16px;">
+            <i class="fas fa-plus"></i> Create News
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 class="modal-title">Delete News Article</h3>
+      </div>
+      
+      <div class="modal-body">
+        <p id="deleteText">Are you sure you want to delete this news article? This action cannot be undone.</p>
+      </div>
+      
+      <div class="modal-actions">
+        <form id="deleteForm" method="post">
+          {% csrf_token %}
+          <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" class="btn" style="background: var(--danger); color: white;">
+            Delete Article
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openDeleteModal(button) {
+      const url = button.getAttribute("data-url");
+      const title = button.getAttribute("data-title");
+
+      document.getElementById("deleteModal").style.display = "flex";
+      document.getElementById("deleteText").innerText = `Are you sure you want to delete "${title}"? This action cannot be undone.`;
+
+      const form = document.getElementById("deleteForm");
+      form.action = url;
+    }
+
+    function closeDeleteModal() {
+      document.getElementById("deleteModal").style.display = "none";
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById("deleteModal").addEventListener("click", function(e) {
+      if (e.target === this) {
+        closeDeleteModal();
+      }
+    });
+  </script>
+</body>
+
+
+</html>

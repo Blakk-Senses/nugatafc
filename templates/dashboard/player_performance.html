@@ -1,0 +1,552 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>
+    {% if is_edit %}
+      Edit Player Performances — Nugata FC
+    {% else %}
+      Bulk Player Performance Entry — Nugata FC
+    {% endif %}
+  </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+
+  
+  <style>
+    /* Additional styles specific to this page */
+    .match-select-form {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .match-select-form label {
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    
+    .match-select-form select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--lighter);
+      color: var(--text);
+      font-family: inherit;
+      flex: 1;
+      max-width: 400px;
+    }
+    
+    .card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    
+    .card-header {
+      padding: 16px 20px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 16px;
+    }
+    
+    .match-info {
+      padding: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .info-item {
+      padding: 12px 16px;
+      background: var(--light);
+      border-radius: 8px;
+      font-size: 14px;
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .info-item strong {
+      display: block;
+      color: var(--text-light);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    
+    .stats-table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--lighter);
+      box-shadow: var(--shadow);
+    }
+    
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+    
+    .stats-table th {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      padding: 14px 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+    
+    .stats-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    
+    .stats-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .stats-table tr:hover {
+      background-color: rgba(37, 99, 235, 0.03);
+    }
+    
+    .stats-table input,
+    .stats-table select {
+      width: 70px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--lighter);
+      font-family: inherit;
+      transition: var(--transition);
+      text-align: center;
+    }
+    
+    .stats-table input:focus,
+    .stats-table select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    .player-info {
+      min-width: 180px;
+      text-align: left;
+    }
+    
+    .player-info small {
+      color: var(--text-light);
+      font-size: 12px;
+    }
+    
+    .errors {
+      color: var(--danger);
+      font-size: 11px;
+      margin-top: 4px;
+      text-align: center;
+    }
+    
+    .alert {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .alert-success {
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .alert-danger {
+      background-color: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    
+    .empty-state h3 {
+      margin: 0 0 12px 0;
+      font-weight: 600;
+    }
+    
+    .empty-state p {
+      margin: 0;
+      opacity: 0.8;
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    
+    .btn-secondary {
+      background: var(--light);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    
+    /* Ensure sidebar doesn't shrink */
+    .dashboard-container {
+      display: flex;
+      min-height: 100dvh;
+    }
+    
+    .sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--lighter);
+      padding: 24px 16px;
+      box-shadow: var(--shadow);
+      z-index: 10;
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      overflow-y: auto;
+    }
+    
+    .main-content {
+      flex: 1;
+      padding: 32px;
+      background: #f8fafc;
+      min-width: 0; /* Allows content to shrink properly */
+    }
+    
+    /* Special styling for checkbox fields */
+    .stats-table input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+    }
+    
+    /* Special styling for text fields that need more space */
+    .stats-table input[type="text"] {
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    {% include "dashboard/partials/sidebar.html" %}
+
+    <div class="main-content">
+      <div class="header">
+        <h1 class="page-title">
+          {% if is_edit %}
+            Edit Player Performances
+          {% else %}
+            Bulk Player Performance Entry
+          {% endif %}
+        </h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search...">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if messages %}
+        <div class="form-container">
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'success' %}success{% else %}danger{% endif %}">
+              <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Match selection (Add mode only) -->
+      {% if not is_edit %}
+        <form method="get" class="match-select-form">
+          <label for="match">Select Match:</label>
+          <select name="match" id="match" onchange="this.form.submit()">
+            <option value="">-- Choose a match --</option>
+            {% for m in matches %}
+              <option value="{{ m.id }}" {% if selected_match and selected_match.id == m.id %}selected{% endif %}>
+                {{ m }}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      {% endif %}
+
+      {% if selected_match %}
+        <!-- Match Info Card -->
+        <div class="card">
+          <div class="card-header">Match Information</div>
+          <div class="match-info">
+            <div class="info-item">
+              <strong>MATCH</strong>
+              {{ selected_match }}
+            </div>
+            <div class="info-item">
+              <strong>DATE</strong>
+              {{ selected_match.date|date:"M d, Y" }}
+            </div>
+            <div class="info-item">
+              <strong>LOCATION</strong>
+              {{ selected_match.location }}
+            </div>
+            <div class="info-item">
+              <strong>SEASON</strong>
+              {{ selected_match.season }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Player Performance Formset -->
+        <form 
+            method="post" 
+            action="{% if is_edit %}{% url 'dashboard:performance_edit' selected_match.id %}{% else %}{% url 'dashboard:performance_add' %}{% endif %}">
+          
+          {% csrf_token %}
+          <input type="hidden" name="match" value="{{ selected_match.id }}">
+          {{ formset.management_form }}
+
+          <!-- Display formset-level errors -->
+          {% if formset.non_form_errors %}
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-circle"></i>
+              {% for error in formset.non_form_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="stats-table-container">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  {% for field in formset.forms.0.visible_fields %}
+                    {% if field.name != "DELETE" %}
+                      <th>{{ field.label }}</th>
+                    {% endif %}
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for form in formset %}
+                  <!-- Display form-level errors for this player -->
+                  {% if form.non_field_errors %}
+                    <tr>
+                      <td colspan="{{ form.visible_fields|length|add:1 }}">
+                        <div class="alert alert-danger">
+                          <i class="fas fa-exclamation-circle"></i>
+                          {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                          {% endfor %}
+                        </div>
+                      </td>
+                    </tr>
+                  {% endif %}
+
+                  <tr>
+                    <td class="player-info">
+                      <div>{{ form.instance.player_season.player.full_name }}</div>
+                      <small>#{{ form.instance.player_season.jersey_number }} | {{ form.instance.player_season.position }}</small>
+                      <!-- Render hidden fields including the id -->
+                      {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+                      {% endfor %}
+                    </td>
+
+                    {% for field in form.visible_fields %}
+                      {% if field.name != "DELETE" %}
+                        <td style="text-align: center;">
+                          {{ field }}
+                          {% if field.errors %}
+                            <div class="errors">
+                              {% for error in field.errors %}
+                                <span>{{ error }}</span>
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                        </td>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="form-actions">
+            <a href="{% url 'dashboard:performance_list' %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left"></i> Back to List
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> 
+              {% if is_edit %} Update Performances {% else %} Save Performances {% endif %}
+            </button>
+          </div>
+        </form>
+      {% else %}
+        <div class="empty-state">
+          <i class="fas fa-clipboard-list" style="font-size: 48px; margin-bottom: 16px;"></i>
+          <h3>Select a Match to Continue</h3>
+          <p>Choose a finished match from the dropdown above to enter player performance data.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      let formChanged = false;
+      const form = document.querySelector('form');
+
+      if (form) {
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+          input.addEventListener('change', () => formChanged = true);
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+          if (formChanged) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+          }
+        });
+
+        form.addEventListener('submit', function() {
+          formChanged = false;
+        });
+      }
+      
+      // Add zebra striping to table rows
+      const tableRows = document.querySelectorAll('.stats-table tbody tr');
+      tableRows.forEach((row, index) => {
+        if (index % 2 === 0) {
+          row.style.backgroundColor = '#fafafa';
+        }
+      });
+      
+      // Adjust input widths based on field type
+      const numberInputs = document.querySelectorAll('.stats-table input[type="number"]');
+      numberInputs.forEach(input => {
+        input.style.width = '60px';
+      });
+      
+      const checkboxInputs = document.querySelectorAll('.stats-table input[type="checkbox"]');
+      checkboxInputs.forEach(input => {
+        input.style.width = '20px';
+        input.style.height = '20px';
+      });
+    });
+  </script>
+</body>
+</html>

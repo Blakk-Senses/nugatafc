@@ -1,0 +1,561 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Manage Standings — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+  
+  <style>
+    /* Enhanced styling for the standings manager */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .create-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    
+    .create-btn:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+    
+    .standings-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--lighter);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    
+    .standings-table th {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      text-align: left;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .standings-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+    
+    .standings-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .standings-table tr:hover {
+      background: #f8fafc;
+    }
+    
+    .position-cell {
+      text-align: center;
+      font-weight: 700;
+      color: var(--text);
+    }
+    
+    .position-1 {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      color: #92400e;
+    }
+    
+    .position-2, .position-3 {
+      background: #f0f9ff;
+      color: #0369a1;
+    }
+    
+    .position-relegation {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .team-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .team-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: var(--light);
+    }
+    
+    .team-name {
+      font-weight: 500;
+    }
+    
+    .stats-cell {
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .positive-stat {
+      color: var(--success);
+    }
+    
+    .negative-stat {
+      color: var(--danger);
+    }
+    
+    .points-cell {
+      text-align: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+      background: var(--light);
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: var(--transition);
+      border: 1px solid var(--border);
+      background: var(--lighter);
+      color: var(--text);
+      cursor: pointer;
+    }
+    
+    .action-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary-light);
+    }
+    
+    .action-btn.delete {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fecaca;
+    }
+    
+    .action-btn.delete:hover {
+      background: #fee2e2;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    .modal-content {
+      background: var(--lighter);
+      border-radius: var(--radius);
+      padding: 24px;
+      max-width: 450px;
+      width: 100%;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    
+    .modal-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #fef2f2;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    
+    .modal-body {
+      margin-bottom: 24px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+    }
+    
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: var(--border);
+    }
+    
+    /* Filters and League Selector */
+    .league-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .league-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--lighter);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .league-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .league-btn:hover:not(.active) {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    
+    .season-selector {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--lighter);
+      color: var(--text);
+      font-size: 14px;
+      margin-left: auto;
+    }
+    
+    @media (max-width: 768px) {
+      .standings-table {
+        display: block;
+        overflow-x: auto;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .league-selector {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .season-selector {
+        margin-left: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    {% include "dashboard/partials/sidebar.html" %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="header">
+        <h1 class="page-title">Manage Standings</h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search teams...">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-container">
+        <div class="page-header">
+          <h2 style="margin: 0;">Standings</h2>
+          <a href="{% url 'dashboard:manage_standings' %}?match_type={{ selected_match_type }}&season={{ selected_season }}" class="create-btn">
+            <i class="fas fa-plus"></i> Add Team Standing
+          </a>
+        </div>
+
+        <!-- League and Season Selector -->
+        <div class="league-selector">
+          {% for match_type_value, match_type_display in match_type_choices %}
+            <button class="league-btn {% if selected_match_type == match_type_value %}active{% endif %}" 
+                    onclick="filterStandings('match_type', '{{ match_type_value }}')">
+              {{ match_type_display }}
+            </button>
+          {% endfor %}
+          
+          <select class="season-selector" onchange="filterStandings('season', this.value)">
+            {% for season in season_choices %}
+              <option value="{{ season.id }}" {% if selected_season == season.id %}selected{% endif %}>
+                {{ season.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {% if standings %}
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th style="width: 60px; text-align: center;">Pos</th>
+              <th>Team</th>
+              <th style="text-align: center;">P</th>
+              <th style="text-align: center;">W</th>
+              <th style="text-align: center;">D</th>
+              <th style="text-align: center;">L</th>
+              <th style="text-align: center;">GF</th>
+              <th style="text-align: center;">GA</th>
+              <th style="text-align: center;">GD</th>
+              <th style="text-align: center;">Pts</th>
+              <th style="text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for standing in standings %}
+            <tr>
+              <td class="position-cell {% if standing.position == 1 %}position-1{% elif standing.position <= 3 %}position-2{% elif standing.position >= 18 %}position-relegation{% endif %}">
+                {{ standing.position }}
+              </td>
+              <td>
+                <div class="team-cell">
+                  {% if standing.team.logo %}
+                  <img src="{{ standing.team.logo.url }}" alt="{{ standing.team.name }}" class="team-logo">
+                  {% else %}
+                  <div class="team-logo" style="display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-shield-alt" style="color: #94a3b8;"></i>
+                  </div>
+                  {% endif %}
+                  <span class="team-name">{{ standing.team.name }}</span>
+                </div>
+              </td>
+              <td class="stats-cell">{{ standing.played }}</td>
+              <td class="stats-cell">{{ standing.won }}</td>
+              <td class="stats-cell">{{ standing.drawn }}</td>
+              <td class="stats-cell">{{ standing.lost }}</td>
+              <td class="stats-cell">{{ standing.goal_for }}</td>
+              <td class="stats-cell">{{ standing.goal_against }}</td>
+              <td class="stats-cell {% if standing.goal_difference > 0 %}positive-stat{% elif standing.goal_difference < 0 %}negative-stat{% endif %}">
+                {{ standing.goal_difference|stringformat:"+d" }}
+              </td>
+              <td class="points-cell">{{ standing.points }}</td>
+              <td>
+                <div class="action-buttons">
+                  <a href="{% url 'dashboard:standings_edit' standing.pk %}?match_type={{ selected_match_type }}&season={{ selected_season }}" class="action-btn">
+                    <i class="fas fa-edit"></i> Edit
+                  </a>
+                  
+                  <button onclick="openDeleteModal(this)" 
+                          data-url="{% url 'dashboard:standings_delete' standing.pk %}?match_type={{ selected_match_type }}&season={{ selected_season }}" 
+                          data-team="{{ standing.team.name }}"
+                          class="action-btn delete">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <h3>No Standings Yet</h3>
+          <p>Get started by adding your first team standing for {{ selected_season }}.</p>
+          <a href="{% url 'dashboard:manage_standings' %}?match_type={{ selected_match_type }}&season={{ selected_season }}" class="create-btn" style="margin-top: 16px;">
+            <i class="fas fa-plus"></i> Add Team Standing
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 class="modal-title">Delete Standing</h3>
+      </div>
+      
+      <div class="modal-body">
+        <p id="deleteText">Are you sure you want to delete this standing? This action cannot be undone.</p>
+      </div>
+      
+      <div class="modal-actions">
+        <form id="deleteForm" method="post">
+          {% csrf_token %}
+          <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" class="btn" style="background: var(--danger); color: white;">
+            Delete Standing
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openDeleteModal(button) {
+      const url = button.getAttribute("data-url");
+      const teamName = button.getAttribute("data-team");
+
+      document.getElementById("deleteModal").style.display = "flex";
+      document.getElementById("deleteText").innerText = `Are you sure you want to delete the standing for "${teamName}"? This action cannot be undone.`;
+
+      const form = document.getElementById("deleteForm");
+      form.action = url;
+    }
+
+    function closeDeleteModal() {
+      document.getElementById("deleteModal").style.display = "none";
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById("deleteModal").addEventListener("click", function(e) {
+      if (e.target === this) {
+        closeDeleteModal();
+      }
+    });
+    
+    // Filter standings by match type and season
+    function filterStandings(filterType, value) {
+      const url = new URL(window.location.href);
+      const searchParams = new URLSearchParams(window.location.search);
+      
+      if (filterType === 'match_type') {
+        searchParams.set('match_type', value);
+      } else if (filterType === 'season') {
+        searchParams.set('season', value);
+      }
+      
+      url.search = searchParams.toString();
+      window.location.href = url.toString();
+    }
+
+    // Initialize active state for league buttons
+    document.querySelectorAll('.league-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.league-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        this.classList.add('active');
+      });
+    });
+  </script>
+</body>
+
+</html>

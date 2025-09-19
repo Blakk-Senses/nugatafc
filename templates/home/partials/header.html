@@ -1,0 +1,54 @@
+{% load static %}
+<header>
+    <div class="header-container">
+        <!-- Logo & Club Name -->
+        <div class="logo-container">
+            <div class="logo">
+                <a href="{% url 'home:home' %}">
+                    {% if club_settings.crest %}
+                        <img src="{{ club_settings.crest.url }}" alt="{{ club_settings.club_name }} Logo">
+                    {% else %}
+                        <img src="{% static 'images/default_logo.png' %}" alt="Club Logo">
+                    {% endif %}
+                </a>
+            </div>
+            <div class="club-name">{{ club_settings.club_name }}</div>
+        </div>
+
+        <!-- Dynamic Navigation Menu -->
+        <nav id="main-nav">
+            {% with menu_items=club_settings.get_menu_items %}
+                {% if menu_items %}
+                    {% for item in menu_items %}
+                        <a href="{{ item.url }}" class="{% if request.path == item.url %}active{% endif %}">
+                            {{ item.label }}
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <!-- Fallback if no menu is configured -->
+                    <a href="{% url 'home:home' %}" class="{% if request.path == '/' %}active{% endif %}">Home</a>
+                {% endif %}
+            {% endwith %}
+        </nav>
+
+        <!-- Search Box -->
+        <div class="search-container" id="desktop-search">
+            <div class="search-box">
+                <input type="text" placeholder="Search...">
+                <div class="search-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div class="mobile-right-icons">
+            <div class="search-icon mobile-search-toggle" id="mobile-search-toggle">
+                <i class="fas fa-search"></i>
+            </div>
+            <button class="mobile-menu-btn" id="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+</header>

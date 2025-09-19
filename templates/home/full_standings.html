@@ -1,0 +1,450 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>League Standings - Nugata FC</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+    <style>
+        :root {
+            --color-primary: {{ brand_colors.primary }};
+            --color-secondary: {{ brand_colors.secondary }};
+            --color-neutral-dark: {{ brand_colors.neutral_dark }};
+            --color-neutral-light: {{ brand_colors.neutral_light }};
+            --color-primary-light: color-mix(in srgb, {{ brand_colors.primary }} 80%, white);
+            --color-primary-lighter: color-mix(in srgb, {{ brand_colors.primary }} 20%, white);
+            --color-secondary-light: color-mix(in srgb, {{ brand_colors.secondary }} 80%, white);
+        }
+        
+        /* Isolated standings styles to prevent conflicts with main.css */
+        .standings-page-container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        
+        .standings-card-isolated {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            grid-column: 1;
+        }
+        
+        .standings-table-header-isolated {
+            background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+            color: white;
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .standings-table-header-isolated h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .filters-sidebar-isolated {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 1.2rem;
+            height: fit-content;
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .filters-sidebar-isolated h3 {
+            margin-top: 0;
+            margin-bottom: 1.2rem;
+            color: var(--color-neutral-dark);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .filter-group-isolated {
+            margin-bottom: 1.2rem;
+        }
+        
+        .filter-group-isolated label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--color-neutral-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .filter-select-isolated {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #f8fafc;
+            font-size: 0.9rem;
+            color: var(--color-neutral-dark);
+            transition: all 0.2s ease;
+        }
+        
+        .filter-select-isolated:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-lighter);
+        }
+        
+        /* Completely isolated table styles */
+        .standings-table-container-isolated {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        .standings-table-isolated {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95rem;
+        }
+        
+        .standings-table-isolated th {
+            background-color: #f1f5f9;
+            padding: 0.9rem 0.8rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--color-neutral-dark);
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .standings-table-isolated th:first-child {
+            border-top-left-radius: 4px;
+            text-align: center;
+            padding-left: 0.8rem;
+        }
+        
+        .standings-table-isolated th:last-child {
+            border-top-right-radius: 4px;
+        }
+        
+        /* Team header specifically left-aligned */
+        .standings-table-isolated th.team-header-isolated {
+            text-align: left;
+            padding-left: 1rem;
+        }
+        
+        .standings-table-isolated td {
+            padding: 1rem 0.8rem;
+            text-align: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        /* Team cells specifically left-aligned */
+        .standings-table-isolated td.team-cell-isolated {
+            text-align: left;
+            padding-left: 1rem;
+        }
+        
+        .position-cell-isolated {
+            font-weight: 700;
+            text-align: center;
+            border-radius: 4px;
+        }
+        
+        .position-1-isolated {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .position-2-isolated {
+            background-color: #e0e7ff;
+            color: #4f46e5;
+        }
+        
+        .position-3-isolated {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .position-relegation-isolated {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .team-cell-content-isolated {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+        
+        .team-logo-isolated {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            border-radius: 50%;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0; /* Prevent logo from shrinking */
+        }
+        
+        .team-logo-isolated i {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        
+        .team-name-isolated {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .highlight-nugata-isolated {
+            background-color: var(--color-primary-lighter) !important;
+            font-weight: 600;
+        }
+        
+        .highlight-nugata-isolated td:first-child {
+            border-left: 3px solid var(--color-primary);
+        }
+        
+        .positive-stat-isolated {
+            color: #16a34a;
+            font-weight: 600;
+        }
+        
+        .negative-stat-isolated {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .points-cell-isolated {
+            font-weight: 700;
+            color: var(--color-neutral-dark);
+        }
+        
+        .no-data-isolated {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #64748b;
+        }
+        
+        .no-data-isolated i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+        
+        .no-data-isolated h3 {
+            margin: 0 0 0.5rem 0;
+            color: #475569;
+        }
+        
+        .no-data-isolated p {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .standings-page-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters-sidebar-isolated {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            
+            .standings-card-isolated {
+                grid-column: 1;
+                grid-row: 2;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .standings-table-header-isolated {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .standings-table-isolated th, 
+            .standings-table-isolated td {
+                padding: 0.8rem 0.5rem;
+                font-size: 0.85rem;
+            }
+            
+            .standings-table-isolated th:nth-child(4),
+            .standings-table-isolated th:nth-child(5),
+            .standings-table-isolated th:nth-child(6),
+            .standings-table-isolated td:nth-child(4),
+            .standings-table-isolated td:nth-child(5),
+            .standings-table-isolated td:nth-child(6) {
+                display: none;
+            }
+            
+            .team-logo-isolated {
+                width: 22px;
+                height: 22px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .standings-page-container {
+                padding: 0 0.5rem;
+            }
+            
+            .standings-table-isolated {
+                font-size: 0.8rem;
+            }
+            
+            .standings-table-isolated th, 
+            .standings-table-isolated td {
+                padding: 0.6rem 0.3rem;
+            }
+            
+            .team-cell-content-isolated {
+                gap: 0.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "home/partials/header.html" %}
+    
+    <div class="standings-page-container">
+        <!-- Main content -->
+        <div class="standings-card-isolated">
+            <div class="standings-table-header-isolated">
+                <h2>{{ selected_match_type_display }} Log - {{ selected_season }}</h2>
+            </div>
+            
+            {% if standings %}
+            <div class="standings-table-container-isolated">
+                <table class="standings-table-isolated">
+                    <thead>
+                        <tr>
+                            <th>Pos</th>
+                            <th class="team-header-isolated">Team</th>
+                            <th>P</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>GF</th>
+                            <th>GA</th>
+                            <th>GD</th>
+                            <th>Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for standing in standings %}
+                        <tr class="{% if standing.team.name == 'Nugata FC' %}highlight-nugata-isolated{% endif %}">
+                            <td class="position-cell-isolated {% if standing.position == 1 %}position-1-isolated{% elif standing.position == 2 %}position-2-isolated{% elif standing.position == 3 %}position-3-isolated{% elif standing.position >= 18 %}position-relegation-isolated{% endif %}">
+                                {{ standing.position }}
+                            </td>
+                            <td class="team-cell-isolated">
+                                <div class="team-cell-content-isolated">
+                                    {% if standing.team.logo %}
+                                    <img src="{{ standing.team.logo.url }}" alt="{{ standing.team.name }}" class="team-logo-isolated">
+                                    {% else %}
+                                    <div class="team-logo-isolated">
+                                        <i class="fas fa-shield-alt"></i>
+                                    </div>
+                                    {% endif %}
+                                    <span class="team-name-isolated">{{ standing.team.name }}</span>
+                                </div>
+                            </td>
+                            <td>{{ standing.played }}</td>
+                            <td>{{ standing.won }}</td>
+                            <td>{{ standing.drawn }}</td>
+                            <td>{{ standing.lost }}</td>
+                            <td>{{ standing.goal_for }}</td>
+                            <td>{{ standing.goal_against }}</td>
+                            <td class="{% if standing.goal_difference > 0 %}positive-stat-isolated{% elif standing.goal_difference < 0 %}negative-stat-isolated{% endif %}">
+                                {{ standing.goal_difference|stringformat:"+d" }}
+                            </td>
+                            <td class="points-cell-isolated">{{ standing.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-data-isolated">
+                <i class="fas fa-trophy"></i>
+                <h3>No Standings Available</h3>
+                <p>No standings data found for the selected competition and season.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Filters Sidebar -->
+        <div class="filters-sidebar-isolated">
+            <h3><i class="fas fa-filter"></i> Filter Standings</h3>
+            
+            <div class="filter-group-isolated">
+                <label for="match-type"><i class="fas fa-trophy"></i> Competition</label>
+                <select id="match-type" class="filter-select-isolated" onchange="filterStandings()">
+                    {% for match_type_value, match_type_display in match_type_choices %}
+                        <option value="{{ match_type_value }}" {% if selected_match_type == match_type_value %}selected{% endif %}>
+                            {{ match_type_display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group-isolated">
+                <label for="season"><i class="fas fa-calendar-alt"></i> Season</label>
+                <select id="season" class="filter-select-isolated" onchange="filterStandings()">
+                    {% for season in season_choices %}
+                    <option value="{{ season.id }}" {% if selected_season and selected_season.id == season.id %}selected{% endif %}>
+                        {{ season.name }}
+                    </option>
+                {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    {% include "home/partials/footer.html" %}
+
+    <script>
+        function filterStandings() {
+            const matchType = document.getElementById('match-type').value;
+            const season = document.getElementById('season').value;
+            
+            const url = new URL(window.location.href);
+            url.searchParams.set('match_type', matchType);
+            url.searchParams.set('season', season);
+            
+            window.location.href = url.toString();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const rows = document.querySelectorAll('.standings-table-isolated tbody tr');
+            rows.forEach((row, index) => {
+                row.style.opacity = '0';
+                row.style.transform = 'translateY(10px)';
+                row.style.transition = `opacity 0.3s ease, transform 0.3s ease ${index * 0.03}s`;
+                
+                setTimeout(() => {
+                    row.style.opacity = '1';
+                    row.style.transform = 'translateY(0)';
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>

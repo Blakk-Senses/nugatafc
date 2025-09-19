@@ -1,0 +1,435 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player Performances — Nugata FC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Dashboard CSS -->
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+  {% if club_settings and club_settings.favicon %}
+  {% with base=club_settings.favicon.url|cut:".png" %}
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+  {% endwith %}
+  {% else %}
+  <link rel="icon" href="{% static 'default-favicon.ico' %}">
+  {% endif %}
+
+  
+  <style>
+    /* Additional styles specific to this page */
+    .actions {
+      margin-bottom: 24px;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+    
+    .table-card {
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    
+    .table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .table-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    
+    .table-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .table-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .table-filter select {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--lighter);
+    }
+    
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+    
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    
+    th {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    tr:hover {
+      background-color: rgba(37, 99, 235, 0.03);
+    }
+    
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    
+    .btn-warning {
+      background-color: var(--warning);
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      background-color: #e0a800;
+    }
+    
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c82333;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    
+    .pagination a {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius);
+      transition: var(--transition);
+    }
+    
+    .pagination a:hover {
+      background: #1d4ed8;
+    }
+    
+    .pagination span {
+      color: var(--text);
+      font-weight: 600;
+    }
+    
+    /* Alert styles */
+    .alert {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .alert-success {
+      background-color: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .alert-danger {
+      background-color: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+    }
+    
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    /* Ensure sidebar doesn't shrink */
+    .dashboard-container {
+      display: flex;
+      min-height: 100dvh;
+    }
+    
+    .sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--lighter);
+      padding: 24px 16px;
+      box-shadow: var(--shadow);
+      z-index: 10;
+      position: sticky;
+      top: 0;
+      height: 100dvh;
+      overflow-y: auto;
+    }
+    
+    .main-content {
+      flex: 1;
+      padding: 32px;
+      background: #f8fafc;
+      min-width: 0; /* Allows content to shrink properly */
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    {% include "dashboard/partials/sidebar.html" %}
+
+    <div class="main-content">
+      <div class="header">
+        <h1 class="page-title">Player Performances</h1>
+        <div class="user-menu">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search...">
+          </div>
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if messages %}
+        <div class="form-container">
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'success' %}success{% else %}danger{% endif %}">
+              <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Add Performance button -->
+      <div class="actions">
+        <a href="{% url 'dashboard:performance_add' %}" class="btn-primary">
+          <i class="fas fa-plus"></i> Add Performance
+        </a>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h2 class="table-title">Bulk Player Performances</h2>
+          <div class="table-controls">
+            <div class="table-filter">
+              <label for="season-filter">Season:</label>
+                <form method="get" id="season-filter-form">
+                  <select id="season-filter" name="season" onchange="this.form.submit()">
+                    <option value="">All Seasons</option>
+                    {% for s in all_seasons %}
+                      <option value="{{ s.id }}" {% if s == current_season %}selected{% endif %}>
+                        {{ s.name }}  {# assuming your Season model has a 'name' field like "2025/2026" #}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </form>
+
+            </div>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Match</th>
+                <th>Date</th>
+                <th>Competition</th>
+                <th>Players</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for match in matches %}
+              <tr>
+                <td>{{ match }}</td>
+                <td>{{ match.date|date:"M d, Y" }}</td>
+                <td>{{ match.get_match_type_display|default:"Friendly" }}</td>
+                <td>{{ match.player_performances.count }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <!-- Edit -->
+                    <a href="{% url 'dashboard:performance_edit' match.id %}?page={{ matches.number }}"
+                       class="btn btn-sm btn-warning">
+                      <i class="fas fa-edit"></i> Edit
+                    </a>
+
+                    <!-- Delete -->
+                    <form action="{% url 'dashboard:performance_delete' match.id %}" method="post" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-danger"
+                              onclick="return confirm('Delete ALL performances for {{ match }}?');">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5">
+                  <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <p>No performances recorded yet.</p>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pagination">
+        {% if matches.has_previous %}
+          <a href="?page={{ matches.previous_page_number }}"><i class="fas fa-chevron-left"></i> Previous</a>
+        {% endif %}
+        <span>Page {{ matches.number }} of {{ matches.paginator.num_pages }}</span>
+        {% if matches.has_next %}
+          <a href="?page={{ matches.next_page_number }}">Next <i class="fas fa-chevron-right"></i></a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple JavaScript to enhance the table functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add zebra striping to table rows
+      const tableRows = document.querySelectorAll('tbody tr');
+      tableRows.forEach((row, index) => {
+        if (index % 2 === 0) {
+          row.style.backgroundColor = '#fafafa';
+        }
+      });
+      
+      // Make table rows clickable (except for action buttons)
+      tableRows.forEach(row => {
+        row.addEventListener('click', (e) => {
+          // Don't trigger if clicking on a button or link
+          if (!e.target.closest('a') && !e.target.closest('button')) {
+            const editLink = row.querySelector('a.btn-warning');
+            if (editLink) {
+              window.location = editLink.href;
+            }
+          }
+        });
+        
+        // Change cursor to pointer for clickable rows
+        if (row.querySelector('a.btn-warning')) {
+          row.style.cursor = 'pointer';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

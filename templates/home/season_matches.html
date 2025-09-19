@@ -1,0 +1,567 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Season Matches - Official Website | Nugata FC</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Then link to your external CSS file -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+    
+    {% if club_settings and club_settings.favicon %}
+    {% with base=club_settings.favicon.url|cut:".png" %}
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+    {% endwith %}
+    {% else %}
+    <link rel="icon" href="{% static 'default-favicon.ico' %}">
+    {% endif %}
+    
+    <style>
+        :root {
+            --color-primary: {{ brand_colors.primary }};
+            --color-secondary: {{ brand_colors.secondary }};
+            --color-neutral-dark: {{ brand_colors.neutral_dark }};
+            --color-neutral-light: {{ brand_colors.neutral_light }};
+            --color-primary-rgb: {{ brand_colors.primary|slice:"1" }}{{ brand_colors.primary|slice:"2:3" }}, {{ brand_colors.primary|slice:"3:4" }}{{ brand_colors.primary|slice:"4:5" }}, {{ brand_colors.primary|slice:"5:6" }}{{ brand_colors.primary|slice:"6:7" }};
+            --color-secondary-rgb: {{ brand_colors.secondary|slice:"1" }}{{ brand_colors.secondary|slice:"2:3" }}, {{ brand_colors.secondary|slice:"3:4" }}{{ brand_colors.secondary|slice:"4:5" }}, {{ brand_colors.secondary|slice:"5:6" }}{{ brand_colors.secondary|slice:"6:7" }};
+        }
+        
+        
+        .season-selector {
+            margin: 30px 0 15px;
+            text-align: center;
+        }
+        
+        
+        .season-selector select:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+            box-shadow: 0 0 0 3px rgba(var(--color-secondary-rgb), 0.15);
+        }
+
+        /* Override main.css conflicts */
+    .season-title {
+        text-align: center;
+        margin: 15px 0 30px !important; /* Reduced bottom margin */
+        color: var(--color-neutral-dark);
+        font-size: 24px;
+        font-weight: 700;
+        position: relative;
+        padding-bottom: 12px;
+    }
+    
+    /* Target the specific match center section in this template */
+    .season-matches-container .match-centre {
+        padding: 0 !important; /* Remove the 80px 40px padding from main.css */
+        margin-top: 0 !important;
+    }
+    
+        
+        .season-title:after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 2px;
+            background: var(--color-secondary);
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .match-status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        
+        .status-finished {
+            background-color: var(--color-primary);
+            color: white;
+        }
+        
+        .status-upcoming {
+            background-color: #666;
+            color: white;
+        }
+        
+        .no-matches {
+            text-align: center;
+            padding: 30px 20px;
+            color: #666;
+            font-style: italic;
+            grid-column: 1 / -1;
+        }
+        
+        .season-matches-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 8px;
+        }
+        
+        /* Ultra-Compact Match Cards Styling - TWO COLUMNS */
+        .fixtures-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        
+        .fixture-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 270px; /* Reduced height to approximately 50% */
+            position: relative;
+        }
+        
+        .fixture-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .fixture-header {
+            color: white;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .fixture-meta {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .fixture-season, .fixture-type {
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        .fixture-body {
+            padding: 12px 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .fixture-teams {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .fixture-team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .fixture-team img {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            margin-bottom: 3px;
+        }
+        
+        .fixture-team-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-neutral-dark);
+            line-height: 1.2;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .fixture-vs {
+            margin: 0 8px;
+            font-weight: 700;
+            font-size: 25px;
+            color: var(--color-neutral-dark);
+            min-width: 25px;
+            text-align: center;
+        }
+        
+        .fixture-score {
+            margin: 0 8px;
+            font-weight: 800;
+            font-size: 25px;
+            color: var(--color-primary);
+            min-width: 35px;
+            text-align: center;
+        }
+        
+        .fixture-details {
+            text-align: center;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #f0f0f0;
+        }
+        
+        .fixture-date {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 0px;
+        }
+        
+        .fixture-date.finished {
+            font-size: 12px;
+            color: #4CAF50;
+            font-weight: 700;
+        }
+        
+        .fixture-info {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        
+        
+        .fixture-button:hover {
+            background: var(--color-secondary);
+            transform: translateY(-1px);
+        }
+        
+        /* Match card status indicator */
+        .fixture-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+        }
+        
+        .fixture-card.status-finished::before {
+            background: var(--color-primary);
+        }
+        
+        .fixture-card.status-upcoming::before {
+            background: #666;
+        }
+        
+        /* Month separator for matches */
+        .month-separator {
+            grid-column: 1 / -1;
+            margin: 20px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--color-secondary);
+            color: var(--color-neutral-dark);
+            font-size: 15px;
+            font-weight: 700;
+        }
+        
+        /* Empty state styling */
+        .no-matches {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 15px;
+            text-align: center;
+            color: #888;
+            grid-column: 1 / -1;
+        }
+        
+        .no-matches i {
+            font-size: 36px;
+            margin-bottom: 12px;
+            color: #ddd;
+        }
+        
+        .no-matches p {
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .fixtures-grid {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .season-title {
+                font-size: 20px;
+                margin: 10px 0 20px;
+            }
+            
+            .fixture-team img {
+                height: 28px;
+            }
+            
+            .fixture-vs, .fixture-score {
+                font-size: 12px;
+                margin: 0 6px;
+            }
+            
+            .fixture-actions {
+                flex-direction: column;
+                gap: 4px;
+            }
+            
+            .fixture-button {
+                width: 100%;
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+            
+            .fixture-card {
+                height: 170px; /* Slightly taller on mobile for better touch targets */
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include "home/partials/header.html" %}
+
+    <div class="season-matches-container">
+        <div class="season-selector">
+            <form method="GET" action="">
+                <select name="season" onchange="this.form.submit()">
+                    <option value="">Select a Season</option>
+                    {% for season in seasons %}
+                    <option value="{{ season.id }}" {% if selected_season and selected_season.id == season.id %}selected{% endif %}>
+                        {{ season.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        {% if selected_season %}
+        <h2 class="season-title">Matches for {{ selected_season.name }}</h2>
+        {% else %}
+        <h2 class="season-title">Recent Results & Upcoming Matches</h2>
+        {% endif %}
+
+        <!-- Match Centre Section -->
+        <section class="match-centre" id="matches">
+            <div class="match-centre-content">
+                <!-- All Matches -->
+                <div class="tab-content active" id="all-matches">
+                    <div class="fixtures-grid">
+                        {% regroup matches by date|date:"F Y" as match_list %}
+                        
+                        {% if match_list %}
+                            {% for month in match_list %}
+                                <div class="month-separator">{{ month.grouper }}</div>
+                                
+                                {% for match in month.list %}
+                                <div class="fixture-card status-{{ match.status }}">
+                                    <div class="fixture-header">
+                                        <div class="fixture-meta">
+                                            <span class="fixture-season">
+                                                <i class="fas fa-calendar-alt"></i>{{ match.season }}
+                                            </span>
+                                            <span class="match-status-badge status-{{ match.status }}">
+                                                {{ match.status|title }}
+                                            </span>
+                                        </div>
+                                        <span class="fixture-type">
+                                            <i class="fas fa-trophy"></i>{{ match.get_match_type_display }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="fixture-body">
+                                        <div class="fixture-teams">
+                                            <div class="fixture-team">
+                                                <img src="{{ match.home_team.logo.url }}" alt="{{ match.home_team.name }}" />
+                                                <div class="fixture-team-name">{{ match.home_team.name }}</div>
+                                            </div>
+                                            
+                                            {% if match.status == "finished" %}
+                                            <div class="fixture-score">
+                                                {{ match.home_score }} - {{ match.away_score }}
+                                            </div>
+                                            {% else %}
+                                            <div class="fixture-vs">
+                                                VS
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <div class="fixture-team">
+                                                <img src="{{ match.away_team.logo.url }}" alt="{{ match.away_team.name }}" />
+                                                <div class="fixture-team-name">{{ match.away_team.name }}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="fixture-details">
+                                            {% if match.status == "finished" %}
+                                            <div class="fixture-date finished">
+                                                <i class="fas fa-whistle"></i> Full Time • {{ match.date|date:"M d, Y" }}
+                                            </div>
+                                            {% else %}
+                                            <div class="fixture-date">
+                                                <i class="far fa-clock"></i> {{ match.date|date:"M d, Y • H:i" }}
+                                            </div>
+                                            {% endif %}
+                                            <div class="fixture-info">
+                                                <i class="fas fa-map-marker-alt"></i> {{ match.location }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                        <div class="no-matches">
+                            <i class="far fa-futbol"></i>
+                            <p>No matches available for this selection.</p>
+                            <button class="fixture-button" onclick="history.back()">Go Back</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    {% include "home/partials/footer.html" %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile menu toggle
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const mainNav = document.getElementById('main-nav');
+            const mobileSearchToggle = document.getElementById('mobile-search-toggle');
+            const mobileSearch = document.getElementById('mobile-search');
+            const desktopSearch = document.getElementById('desktop-search');
+
+            // Check if mobile view
+            function isMobileView() {
+                return window.innerWidth <= 768;
+            }
+
+            // Toggle mobile elements based on screen size
+            function toggleMobileElements() {
+                if (isMobileView()) {
+                    if (mobileSearchToggle) mobileSearchToggle.style.display = 'block';
+                    if (desktopSearch) desktopSearch.style.display = 'none';
+                } else {
+                    if (mobileSearch) mobileSearch.style.display = 'none';
+                    if (desktopSearch) desktopSearch.style.display = 'flex';
+                }
+            }
+
+            // Initial check
+            toggleMobileElements();
+
+            // Listen for window resize
+            window.addEventListener('resize', toggleMobileElements);
+
+            if (mobileMenuToggle && mainNav) {
+                mobileMenuToggle.addEventListener('click', function () {
+                    mainNav.classList.toggle('active');
+                    if (mobileSearch) mobileSearch.classList.remove('active');
+
+                    // Change icon based on menu state
+                    const icon = this.querySelector('i');
+                    if (mainNav.classList.contains('active')) {
+                        icon.classList.remove('fa-bars');
+                        icon.classList.add('fa-times');
+                    } else {
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    }
+                });
+            }
+
+            if (mobileSearchToggle && mobileSearch) {
+                mobileSearchToggle.addEventListener('click', function () {
+                    mobileSearch.style.display = mobileSearch.style.display === 'none' ? 'block' : 'none';
+                    if (mainNav) mainNav.classList.remove('active');
+
+                    // Reset menu icon
+                    if (mobileMenuToggle) {
+                        const menuIcon = mobileMenuToggle.querySelector('i');
+                        menuIcon.classList.remove('fa-times');
+                        menuIcon.classList.add('fa-bars');
+                    }
+                });
+            }
+
+            // Match centre tabs functionality
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-tab');
+
+                    // Remove active class from all tabs and contents
+                    tabs.forEach((t) => t.classList.remove('active'));
+                    tabContents.forEach((c) => c.classList.remove('active'));
+
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+
+            // Add animation to fixture cards
+            const fixtureCards = document.querySelectorAll('.fixture-card');
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1,
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+
+            // Initialize fixture cards with hidden state
+            fixtureCards.forEach((card) => {
+                card.style.opacity = 0;
+                card.style.transform = 'translateY(15px)';
+                card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                observer.observe(card);
+            });
+            
+            // Add hover effect to buttons
+            const buttons = document.querySelectorAll('.fixture-button');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-1px)';
+                });
+                button.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

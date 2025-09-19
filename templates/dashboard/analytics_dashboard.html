@@ -1,0 +1,697 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard | Nugata FC</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"/>
+    {% if club_settings and club_settings.favicon %}
+    {% with base=club_settings.favicon.url|cut:".png" %}
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+    {% endwith %}
+    {% else %}
+    <link rel="icon" href="{% static 'default-favicon.ico' %}">
+    {% endif %}
+
+    <style>
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .date-filter {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            background: white;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bg-primary { background-color: #eef2ff; color: #4f46e5; }
+        .bg-success { background-color: #f0fdf4; color: #22c55e; }
+        .bg-danger { background-color: #fef2f2; color: #ef4444; }
+        .bg-warning { background-color: #fffbeb; color: #f59e0b; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .positive { color: #22c55e; }
+        .negative { color: #ef4444; }
+
+        .visitor-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .visitor-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .visitor-icon {
+            width: 4rem;
+            height: 4rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+
+        .visitor-title {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .visitor-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .table-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .table-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .view-all {
+            color: #4f46e5;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table th {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .progress-bar {
+            width: 100px;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4f46e5;
+            border-radius: 3px;
+        }
+
+        .traffic-sources-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .traffic-source {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+        }
+
+        .source-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .source-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            background: #eef2ff;
+            color: #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .source-name {
+            font-weight: 500;
+        }
+
+        .source-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        {% include "dashboard/partials/sidebar.html" %}
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 class="page-title">Analytics Dashboard</h1>
+                <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">
+                {% with members|get_member:request.user as current_member %}
+                  {{ current_member.name|default:request.user.username }}
+                {% endwith %}
+              </div>
+              <div class="user-role">
+                {% with members|get_member:request.user as current_member %}
+                  {% if current_member and current_member.role %}
+                    {{ current_member.role.name }}
+                  {% else %}
+                    {% if request.user.is_superuser %}
+                      Administrator
+                    {% else %}
+                      Staff Member
+                    {% endif %}
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+            <div class="avatar">
+              {% with members|get_member:request.user as current_member %}
+                {% if current_member and current_member.picture %}
+                  <img src="{{ current_member.picture.url }}" alt="{{ current_member.name|default:request.user.username }}">
+                {% else %}
+                  {{ current_member.name|default:request.user.get_full_name|default:request.user.username|first|upper }}
+                {% endif %}
+              {% endwith %}
+            </div>
+          </div>
+                <div class="date-filter">
+                    <a href="?days=1" class="filter-btn {% if selected_days == 1 %}active{% endif %}">Today</a>
+                    <a href="?days=7" class="filter-btn {% if selected_days == 7 %}active{% endif %}">Last 7 Days</a>
+                    <a href="?days=30" class="filter-btn {% if selected_days == 30 %}active{% endif %}">Last 30 Days</a>
+                    <a href="?days=90" class="filter-btn {% if selected_days == 90 %}active{% endif %}">Last 90 Days</a>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Total Visits</div>
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ total_visits }}</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 12.5% from last period
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Unique Visitors</div>
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ unique_visitors }}</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 8.3% from last period
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Bounce Rate</div>
+                        <div class="stat-icon bg-danger">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ bounce_rate }}%</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-arrow-up"></i> 2.1% from last period
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-title">Avg. Session Duration</div>
+                        <div class="stat-icon bg-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ avg_duration }}m</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 0.5m from last period
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visitor Types -->
+            <div class="visitor-types">
+                <div class="visitor-card">
+                    <div class="visitor-icon bg-primary">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="visitor-title">New Visitors</div>
+                    <div class="visitor-value">{{ new_visitors }}</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 
+                        {% if unique_visitors > 0 %}
+                            {% widthratio new_visitors unique_visitors 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="visitor-card">
+                    <div class="visitor-icon bg-success">
+                        <i class="fas fa-undo"></i>
+                    </div>
+                    <div class="visitor-title">Returning Visitors</div>
+                    <div class="visitor-value">{{ returning_visitors }}</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 
+                        {% if unique_visitors > 0 %}
+                            {% widthratio returning_visitors unique_visitors 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Visits Over Time</div>
+                        <div class="chart-actions">
+                            <button class="filter-btn">Daily</button>
+                            <button class="filter-btn active">Weekly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="visitsChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Traffic Sources</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sourcesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tables Section -->
+            <div class="tables-grid">
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">Top Pages</div>
+                        <a href="#" class="view-all">View All</a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th>Visits</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for page in top_pages %}
+                            <tr>
+                                <td>{{ page.url|truncatechars:30 }}</td>
+                                <td>{{ page.count }}</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: {% widthratio page.count total_visits 100 %}%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">Traffic Sources</div>
+                        <a href="#" class="view-all">View All</a>
+                    </div>
+                    <div class="traffic-sources-list">
+                        {% for source, count in traffic_sources.items %}
+                        <div class="traffic-source">
+                            <div class="source-info">
+                                <div class="source-icon">
+                                    <i class="fas fa-{% if source == 'Direct' %}directness{% elif source == 'Search' %}search{% elif source == 'Social' %}share-alt{% elif source == 'Email' %}envelope{% else %}external-link-alt{% endif %}"></i>
+                                </div>
+                                <div class="source-name">{{ source }}</div>
+                            </div>
+                            <div class="source-value">{{ count }} ({% widthratio count total_visits 100 %}%)</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Tables -->
+            <div class="tables-grid">
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">Device Types</div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Device Type</th>
+                                <th>Visits</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device, count in device_types.items %}
+                            <tr>
+                                <td>{{ device }}</td>
+                                <td>{{ count }}</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: {% widthratio count total_visits 100 %}%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <div class="table-title">Top Browsers</div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Browser</th>
+                                <th>Visits</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for browser in top_browsers %}
+                            <tr>
+                                <td>{{ browser.browser }}</td>
+                                <td>{{ browser.count }}</td>
+                                <td>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: {% widthratio browser.count total_visits 100 %}%"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Operating Systems Table -->
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Operating Systems</div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>OS</th>
+                            <th>Visits</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for os in top_os %}
+                        <tr>
+                            <td>{{ os.operating_system }}</td>
+                            <td>{{ os.count }}</td>
+                            <td>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {% widthratio os.count total_visits 100 %}%"></div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Visits Over Time Chart
+        const visitsCtx = document.getElementById('visitsChart').getContext('2d');
+        const visitsChart = new Chart(visitsCtx, {
+            type: 'line',
+            data: {
+                labels: [{% for day in daily_data %}'{{ day.day|date:"M d" }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    label: 'Visits',
+                    data: [{% for day in daily_data %}{{ day.count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Traffic Sources Chart
+        const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
+        const sourcesChart = new Chart(sourcesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for source, count in traffic_sources.items %}'{{ source }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                datasets: [{
+                    data: [{% for source, count in traffic_sources.items %}{{ count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: [
+                        '#4f46e5',
+                        '#10b981',
+                        '#f59e0b',
+                        '#ef4444',
+                        '#8b5cf6',
+                        '#06b6d4'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Add interactivity to filter buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (this.tagName === 'BUTTON') {
+                        e.preventDefault();
+                        
+                        // Remove active class from all buttons in the same group
+                        const parent = this.closest('.chart-actions');
+                        if (parent) {
+                            parent.querySelectorAll('.filter-btn').forEach(btn => {
+                                btn.classList.remove('active');
+                            });
+                        }
+                        
+                        // Add active class to clicked button
+                        this.classList.add('active');
+                        
+                        // Here you would typically update the chart data
+                        // based on the selected filter
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

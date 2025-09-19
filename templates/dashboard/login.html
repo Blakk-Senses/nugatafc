@@ -1,0 +1,339 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Nugata FC Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% if club_settings and club_settings.favicon %}
+    {% with base=club_settings.favicon.url|cut:".png" %}
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ base }}_16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ base }}_32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}_180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}_192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ base }}_512x512.png">
+    {% endwith %}
+    {% else %}
+    <link rel="icon" href="{% static 'default-favicon.ico' %}">
+    {% endif %}
+
+    <style>
+        :root {
+            --color-primary: {{ brand_colors.primary }};
+            --color-secondary: {{ brand_colors.secondary }};
+            --color-neutral-dark: {{ brand_colors.neutral_dark }};
+            --color-neutral-light: {{ brand_colors.neutral_light }};
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--color-neutral-dark) 0%, var(--color-primary) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--color-neutral-dark);
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+        
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .login-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+        }
+        
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(var(--color-secondary-rgb), 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shimmer 6s infinite linear;
+            z-index: 0;
+        }
+        
+        @keyframes shimmer {
+            0% {
+                transform: rotate(45deg) translateX(-50%) translateY(-50%);
+            }
+            100% {
+                transform: rotate(45deg) translateX(50%) translateY(50%);
+            }
+        }
+        
+        .logo-container {
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            padding: 5px;
+            border-radius: 50%;
+            background: white;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        h2 {
+            color: var(--color-neutral-dark);
+            margin-bottom: 25px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        
+        h2::after {
+            content: '';
+            display: block;
+            width: 50px;
+            height: 3px;
+            background: var(--color-secondary);
+            margin: 10px auto;
+            border-radius: 3px;
+        }
+        
+        form {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--color-neutral-dark);
+            font-size: 14px;
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-secondary);
+        }
+        
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #eaeaea;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+        
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--color-secondary);
+            box-shadow: 0 0 0 3px rgba(var(--color-secondary-rgb), 0.2);
+            outline: none;
+            background: #fff;
+        }
+        
+        .errorlist {
+            list-style: none;
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            text-align: left;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-primary) 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(var(--color-secondary-rgb), 0.3);
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            box-shadow: 0 8px 20px rgba(var(--color-secondary-rgb), 0.4);
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(var(--color-secondary-rgb), 0.3);
+        }
+        
+        .footer-links {
+            margin-top: 25px;
+            font-size: 14px;
+            color: #666;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .footer-links a {
+            color: var(--color-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-links a:hover {
+            color: var(--color-primary);
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 480px) {
+            .login-box {
+                padding: 30px 20px;
+            }
+            
+            .logo {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo-container">
+                <div class="logo">
+                    <img src="{% static 'images/nugatafc_logo.jpg' %}" alt="Nugata FC Logo">
+                </div>
+            </div>
+            
+            <h2>Dashboard Login</h2>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="errorlist">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="id_username">Username</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="username" id="id_username" required placeholder="Enter your username">
+                    </div>
+                    {% if form.username.errors %}
+                    <div class="errorlist">{{ form.username.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" id="id_password" required placeholder="Enter your password">
+                    </div>
+                    {% if form.password.errors %}
+                    <div class="errorlist">{{ form.password.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <button type="submit">Login</button>
+            </form>
+            
+            <div class="footer-links">
+                <p><a href="#">Forgot your password?</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Extract RGB values from CSS variables for use in rgba()
+            function getRGBValues(color) {
+                const hex = color.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                return `${r}, ${g}, ${b}`;
+            }
+            
+            // Set RGB values as CSS variables
+            const style = document.documentElement.style;
+            const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-secondary').trim();
+            style.setProperty('--color-secondary-rgb', getRGBValues(secondaryColor));
+            
+            // Add animation to input fields on focus
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.style.transform = 'scale(1.02)';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.parentElement.style.transform = 'scale(1)';
+                });
+            });
+            
+            // Add a subtle pulsing animation to the logo
+            const logo = document.querySelector('.logo');
+            setInterval(() => {
+                logo.style.boxShadow = '0 0 0 0 rgba(var(--color-secondary-rgb), 0.7)';
+                setTimeout(() => {
+                    logo.style.boxShadow = '0 0 0 10px rgba(var(--color-secondary-rgb), 0)';
+                }, 500);
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
